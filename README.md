@@ -1,6 +1,6 @@
 # Wiesn Walk
 
-A free browser game by [Nassau](https://nassau.se/apps): walk the Munich Wiesn at golden hour, step into Festhalle Sonnenwirt, sway to the waltz and raise your Maß at the Prosit.
+A free browser game by [Nassau](https://www.nassau.se/products): walk the Munich Wiesn at golden hour, step into Festhalle Sonnenwirt, sway to the waltz and raise your Maß at the Prosit.
 
 Plain HTML + JS in `public/`, served by Astro on Webflow Cloud (same setup as Intus).
 
