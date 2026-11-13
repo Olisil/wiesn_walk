@@ -57,7 +57,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   <div id="start" role="dialog" aria-labelledby="ttl">
     <div class="eyebrow" id="eyebrow">Theresienwiese · München · at sunset</div>
     <h1 id="ttl">Wiesn Walk</h1>
-    <p class="lede">Golden hour on the Wiesn. You walk as a Bursch in Lederhosen with a full Maß, among guests in Dirndl and Tracht. Every Prost is a sip and 10 points; five sips empty the glass. Then find a Kellnerin in the Festhalle Sonnenwirt, ahead on your left, for a fresh Maß and 50 points. Each sip makes the walk a little harder.</p>
+    <p class="lede">Golden hour on the Wiesn. You walk as a Bursch in Lederhosen with a full Maß, among guests in Dirndl and Tracht. Every Prost is a sip and 10 points; five sips empty the glass. Then find a Kellnerin in the Festhalle Sonnenwirt, ahead on your left, for a fresh Maß and 50 points. Each sip makes the walk harder; six Maß and you can barely stand, ten and you are out.</p>
     <div class="how" id="how"></div>
     <p class="how-note" id="howNote"></p>
     <div class="qrow">
@@ -69,6 +69,13 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
     </div>
     <button id="go" disabled>Building the Wiesn…</button>
     <p class="note">The Bursch, the Madl and the Kellnerin were modelled, rigged and animated in Blender. Tent names, facades and the layout are invented. Ein Prosit der Gemütlichkeit by Bernhard Dittrich (1898) is in the public domain. A free app by <a href="https://www.nassau.se/products" target="_top">Nassau</a>.</p>
+  </div>
+  <div id="gameover" role="dialog" aria-labelledby="goTtl" hidden>
+    <div class="eyebrow">Zehn Maß · Game Over</div>
+    <h1 id="goTtl">K.o.!</h1>
+    <p class="lede" id="goText">Ten Maß and you are flat on your back on the Wiesn.</p>
+    <div class="go-score"><span id="goPts">0</span><span>Punkte</span></div>
+    <button id="again">Nochmal!</button>
   </div>
   <div id="hud" hidden>
     <div id="stats">—</div>

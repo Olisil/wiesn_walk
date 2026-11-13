@@ -539,8 +539,57 @@ def frames_serve_idle(rig, n=48):
     return out
 
 
+def frames_knockout(rig, n=48):
+    """stagger, fall flat on the back and lie there belly up (played once, last frame held)"""
+    out = []
+    fem = rig.kind != 'Bursch'
+    hz = rig.h['hips']
+    piv = Vector((0, 0.07, 0.0))
+    for f in range(n):
+        P = Pose(rig)
+        if f < 9:
+            k = f / 8
+            th = -9 * sm(k)
+            buck = 0.06 * sm(k)
+            lift = 0.0
+        elif f < 22:
+            k = (f - 9) / 12
+            th = -9 - 81 * k * k
+            buck = 0.06 * (1 - k)
+            lift = 0.105 * k
+        else:
+            k = (f - 22) / 5
+            th = -90 + (4 * math.sin(math.pi * min(1, k)) if f < 27 else 0)
+            buck = 0.0
+            lift = 0.105
+        q = R(X, th)
+        Qm = q.to_matrix()
+        off = piv - hz + Qm @ (hz - piv) + Vector((0, 0, lift))
+        # knees buckle while staggering
+        P.off = off + Qm @ Vector((0, 0, -buck))
+        P.Q['hips'] = q
+        lie = sm((f - 14) / 10) if f > 14 else 0.0
+        breathe = 0.6 * math.sin(2 * math.pi * f / 24) * (1 if f > 26 else 0)
+        P.rot('spine', R(X, 6 * sm(f / 8) * (1 - lie) + breathe))
+        P.rot('chest', R(X, 4 * sm(f / 8) * (1 - lie)))
+        P.rot('neck', R(X, -14 * sm(f / 10) * (1 - lie) + 6 * lie))
+        P.rot('head', R(Z, 28 * lie), R(X, -10 * sm(f / 10) * (1 - lie)))
+        for side, s in (('L', 1), ('R', -1)):
+            flail = sm(f / 10)
+            out_ = 15 + 60 * lie + 25 * flail * (1 - lie)
+            P.Q['shoulder.' + side] = R(Y, -6 * s * lie)
+            P.Q['upperarm.' + side] = qmul(R(Y, -out_ * s), R(X, -45 * flail * (1 - lie) - 20 * lie))
+            P.Q['forearm.' + side] = R(X, -(25 + 35 * flail * (1 - lie) + 25 * lie))
+            P.Q['hand.' + side] = R(X, -10)
+            P.Q['thigh.' + side] = qmul(R(Y, 9 * s * lie), R(X, -(8 + 14 * buck / 0.06) * (1 - lie) - 8 * lie))
+            P.Q['shin.' + side] = R(X, (16 + 30 * buck / 0.06) * (1 - lie) + 12 * lie)
+            P.Q['foot.' + side] = qmul(R(Z, 18 * s * lie), R(X, 25 * lie))
+        out.append(P.S())
+    return out
+
+
 ANIMS = [('Walk', 24), ('Idle', 48), ('Sit', 48), ('Schunkeln', 52), ('Cheer', 24), ('PrositStand', 24), ('PrositSit', 24),
-         ('WalkBeer', 24), ('DrinkStand', 24), ('DrinkSit', 24), ('Sip', 36), ('ServeWalk', 24), ('ServeIdle', 48)]
+         ('WalkBeer', 24), ('DrinkStand', 24), ('DrinkSit', 24), ('Sip', 36), ('ServeWalk', 24), ('ServeIdle', 48), ('KnockOut', 48)]
 
 
 def all_frames(rig):
@@ -549,7 +598,7 @@ def all_frames(rig):
         'Schunkeln': lambda: frames_schunkeln(rig), 'Cheer': lambda: frames_cheer(rig), 'PrositStand': lambda: frames_prosit(rig, False),
         'PrositSit': lambda: frames_prosit(rig, True), 'WalkBeer': lambda: frames_walk(rig, True), 'DrinkStand': lambda: frames_drink(rig, False),
         'DrinkSit': lambda: frames_drink(rig, True), 'Sip': lambda: frames_sip(rig), 'ServeWalk': lambda: frames_serve_walk(rig),
-        'ServeIdle': lambda: frames_serve_idle(rig)}
+        'ServeIdle': lambda: frames_serve_idle(rig), 'KnockOut': lambda: frames_knockout(rig)}
     out, meta, start = {}, [], 0
     for name, n in ANIMS:
         fr = gen[name]()

@@ -23,7 +23,7 @@ html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;-webkit-
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
-#start{pointer-events:auto;position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:50%;transform:translateY(-50%);
+#start,#gameover{pointer-events:auto;position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:50%;transform:translateY(-50%);
   width:min(540px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;box-sizing:border-box;
   background:linear-gradient(180deg,rgba(8,9,13,.92),rgba(8,9,13,.82));border-left:3px solid var(--gold);
   padding:24px 26px 20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
@@ -359,3 +359,16 @@ body.playing .app-header{transform:translateY(calc(-100% - 24px));opacity:0;poin
   }
 }
 
+
+#gameover{border-left-color:#e0603c;animation:wwko .6s ease-out}
+#gameover h1{color:#f4ecd8}
+.go-score{display:flex;align-items:baseline;gap:10px;font-family:var(--f-gotisch)}
+.go-score span:first-child{font-weight:700;font-size:56px;color:#f0c75a;-webkit-text-stroke:2px #140c03;paint-order:stroke fill;text-shadow:0 3px 0 #000;font-variant-numeric:tabular-nums}
+.go-score span:last-child{font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:#f4ecd8}
+#again{background:var(--gold);color:#1a1105;border:0;padding:11px 24px;font-family:var(--f-gotisch);font-weight:800;font-size:21px;letter-spacing:.03em;align-self:flex-start;cursor:pointer}
+#again:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@keyframes wwko{from{opacity:0;transform:translateY(-46%)}to{opacity:1;transform:translateY(-50%)}}
+@media (prefers-reduced-motion:reduce){#gameover{animation:none}}
+#barMood.danger i{background:#e0302c}
+#hud.ko #bProst,#hud.ko #stickZone{visibility:hidden}
+#gameover{z-index:5}#hud.ko #radar,#hud.ko #area,#hud.ko #hint,#hud.ko #pops{visibility:hidden}

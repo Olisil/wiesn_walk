@@ -138,6 +138,7 @@ class Head:
         for j in range(nph):
             F.append((last, o + j, o + (j + 1) % nph))
         V = np.array(V)
+        F = [tuple(reversed(f)) for f in F]   # outward winding
         parts = [part_fn(V[list(f)].mean(0)) if part_fn else part for f in F]
         return M.add(V, F, parts, w)
 
@@ -167,6 +168,7 @@ class Head:
                 a = 1 + i * nph + j
                 b = 1 + i * nph + (j + 1) % nph
                 F.append((a, b, b + nph, a + nph))
+        F = [tuple(reversed(f)) for f in F]   # outward winding
         return M.add(V, F, [part] * len(F), w)
 
 

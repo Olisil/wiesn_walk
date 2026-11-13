@@ -555,7 +555,7 @@ const TR=await (await fetch('data/trachten.json')).json();
 function b64(s,T){const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new T(u.buffer);}
 const NB=TR.bones.length;
 const AN={},A_=n=>{const a=TR.anims.find(x=>x.name===n);return[a.start,a.frames];};
-Object.assign(AN,{walk:A_('Walk'),idle:A_('Idle'),sit:A_('Sit'),sway:A_('Schunkeln'),cheer:A_('Cheer'),pstand:A_('PrositStand')[0],psit:A_('PrositSit')[0],
+Object.assign(AN,{ko:A_('KnockOut'),walk:A_('Walk'),idle:A_('Idle'),sit:A_('Sit'),sway:A_('Schunkeln'),cheer:A_('Cheer'),pstand:A_('PrositStand')[0],psit:A_('PrositSit')[0],
   walkBeer:A_('WalkBeer'),drinkStand:A_('DrinkStand')[0],drinkSit:A_('DrinkSit')[0],sip:A_('Sip'),serveWalk:A_('ServeWalk'),serveIdle:A_('ServeIdle')});
 const STRIDE=['Bursch','Madl','Kellnerin'].map(n=>TR.chars[n].stride||1.1);
 function trMat(boneTex,hi){
@@ -675,7 +675,7 @@ function agent(g,x,y,z,ry,kind,opt={}){
 }
 let crowd={agents:[],walkers:[],kellner:[],slots:[],blobDyn:null,blobStatic:null,total:0,drawn:0,showIn:true,showOut:true},player=null;
 /* the drinking game: score, what is left in your Maß, how many sips you have had */
-const G={score:0,fill:1,hasBeer:true,sips:0,drunk:0,sipT:-9,sipDone:true,emptyAt:0,refillAt:-9,cheerUntil:-9,st:{t:-9,side:1,amp:0,fwd:0},roll:0};
+const G={score:0,fill:1,hasBeer:true,sips:0,drunk:0,sipT:-9,sipDone:true,emptyAt:0,refillAt:-9,cheerUntil:-9,st:{t:-9,side:1,amp:0,fwd:0},roll:0,ko:0,koShown:false,warned:0};
 function disposeCrowd(){
   for(const S of crowd.slots){scene.remove(S.mesh);S.geo.dispose();}
   for(const m of[crowd.blobDyn,crowd.blobStatic])if(m){scene.remove(m);m.geometry.dispose();}
@@ -882,7 +882,7 @@ const keys={};let started=false,paused=true,hadLock=false,mouseDown=false;
 const P={x:4,z:-62,yaw:2.46,pitch:-.03,bob:0,vx:0,vz:0};
 addEventListener('keydown',e=>{keys[e.code]=true;if(!started)return;
   if(e.code==='KeyP')prost();if(e.code==='KeyM')toggleSound();if(e.code==='KeyV')toggleView();if(e.code==='KeyF'&&!e.repeat&&!e.metaKey&&!e.ctrlKey)toggleFullscreen();
-  if(e.code==='Escape'&&!document.pointerLockElement){paused?resume():pause();}
+  if(e.code==='Escape'&&!document.pointerLockElement&&!G.ko){paused?resume():pause();}
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
@@ -998,6 +998,7 @@ function collide(p){const r=.35;
     else{const l=p.x-b.x0,rr=b.x1-p.x,t=p.z-b.z0,bb=b.z1-p.z,m=Math.min(l,rr,t,bb);if(m===l)p.x=b.x0-r;else if(m===rr)p.x=b.x1+r;else if(m===t)p.z=b.z0-r;else p.z=b.z1+r;}}
   p.x=clamp(p.x,-140,140);p.z=clamp(p.z,-200,205);}
 function updatePlayer(dt){
+  if(G.ko){koUpdate(dt);return;}
   if(gyro.on){const q=gyro.frame(dt);if(q){const yp=yawPitchOf(q);P.yaw=yp.yaw*Math.PI/180;P.pitch=clamp(yp.pitch*Math.PI/180,-1.3,1.3);}}
   let f=0,s=0,run=keys.ShiftLeft||keys.ShiftRight;
   if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;if(keys.KeyD||keys.ArrowRight)s+=1;if(keys.KeyA||keys.ArrowLeft)s-=1;
@@ -1005,19 +1006,19 @@ function updatePlayer(dt){
   const l=Math.hypot(f,s);if(l>1){f/=l;s/=l;}
   /* Rausch: the more sips, the more the walk drifts, the steering wanders and now and then you nearly fall */
   const d=G.drunk,t=performance.now()/1000,moving=l>.1?1:0;
-  if(d>0){const wa=d*.6*(Math.sin(t*.51+2)+.5*Math.sin(t*1.33+.7));const c0=Math.cos(wa),s0=Math.sin(wa);const f2=f*c0-s*s0;s=f*s0+s*c0;f=f2;
-    P.yaw+=d*.12*Math.sin(t*.37+1.1)*dt;}
-  const sp=(run?6.2:3.1)*(1-.12*d),sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
-  const tx=(-sn*f+cs*s)*sp,tz=(-cs*f-sn*s)*sp;const k=Math.min(1,dt*(10-5*d));P.vx+=(tx-P.vx)*k;P.vz+=(tz-P.vz)*k;
+  if(d>0){const wa=d*1.05*(Math.sin(t*.61+2)+.55*Math.sin(t*1.53+.7)+.25*Math.sin(t*3.1));const c0=Math.cos(wa),s0=Math.sin(wa);const f2=f*c0-s*s0;s=f*s0+s*c0;f=f2;
+    P.yaw+=d*.32*(Math.sin(t*.37+1.1)+.4*Math.sin(t*1.7))*dt;}
+  const sp=(run?6.2-2.2*d:3.1)*(1-.25*d),sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
+  const tx=(-sn*f+cs*s)*sp,tz=(-cs*f-sn*s)*sp;const k=Math.min(1,dt*(10-7.5*d));P.vx+=(tx-P.vx)*k;P.vz+=(tz-P.vz)*k;
   let ex=0,ez=0;
-  if(d>0){const dr=d*(.35+.75*moving)*(Math.sin(t*.83)+.6*Math.sin(t*1.97+1.3)+.35*Math.sin(t*3.7+.4))*.55;ex+=cs*dr;ez+=-sn*dr;
-    if(t-G.st.t>1.6&&Math.random()<dt*d*d*(.12+.35*moving+.4*(run?1:0))){G.st={t,side:Math.random()<.5?-1:1,amp:1.5+2.4*d,fwd:Math.random()<.4?1:0};popup(pick(['Hoppla!','Ups!','Obacht!','Hoppala!']),'small');}
+  if(d>0){const dr=d*(.5+1.1*moving)*(Math.sin(t*.93)+.6*Math.sin(t*2.17+1.3)+.35*Math.sin(t*3.9+.4))*.75;ex+=cs*dr;ez+=-sn*dr;
+    if(t-G.st.t>1.1&&Math.random()<dt*d*d*(.25+.7*moving+.6*(run?1:0))){G.st={t,side:Math.random()<.5?-1:1,amp:1.8+3.2*d,fwd:Math.random()<.45?1:0};popup(pick(['Hoppla!','Ups!','Obacht!','Hoppala!']),'small');}
     const st=t-G.st.t;if(st<1.4){const k2=G.st.amp*Math.exp(-st*2.6)*Math.min(1,st*8);ex+=(cs*G.st.side-sn*G.st.fwd*.6)*k2;ez+=(-sn*G.st.side-cs*G.st.fwd*.6)*k2;}}
   P.x+=(P.vx+ex)*dt;P.z+=(P.vz+ez)*dt;collide(P);
   const v=Math.hypot(P.vx+ex,P.vz+ez);P.bob+=v*dt*2.1;
-  {const st=t-G.st.t,sr=st<1.4?G.st.side*(.1+.16*d)*Math.sin(Math.min(1,st/.22)*Math.PI/2)*Math.exp(-st*2.1):0;
-    G.roll=d*.055*Math.sin(t*.7)+d*.02*Math.sin(t*1.9)+sr;}
-  camera.rotation.set(P.pitch+d*.025*Math.sin(t*1.13),P.yaw,G.roll);
+  {const st=t-G.st.t,sr=st<1.4?G.st.side*(.1+.22*d)*Math.sin(Math.min(1,st/.22)*Math.PI/2)*Math.exp(-st*2.1):0;
+    G.roll=d*.09*Math.sin(t*.7)+d*.035*Math.sin(t*1.9)+sr;}
+  camera.rotation.set(P.pitch+d*.05*Math.sin(t*1.13),P.yaw,G.roll);
   if(v>.25){const h=Math.atan2(P.vx+ex,P.vz+ez);let dd=h-heading;dd=Math.atan2(Math.sin(dd),Math.cos(dd));heading+=dd*Math.min(1,dt*10);}
   walkPhase=(walkPhase+dt*v/STRIDE[0])%1;const pr=player.rec;pr[0]=P.x;pr[2]=P.z;pr[3]=heading;pr[27]=G.fill;
   if(t-G.sipT<1.5){pr[4]=AN.sip[0];pr[5]=AN.sip[1];pr[6]=-G.sipT*24;pr[7]=24;}
@@ -1104,10 +1105,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 /* ---------------- the drinking game ----------------
    Prost! takes a sip: a fifth of the Maß, 10 points. Five sips and the glass is empty; you leave it on the floor and look for a
    Kellnerin in the Festhalle. Walk up to her, she stops and hands you a fresh Maß: 50 points. Every sip adds to the Rausch. */
-const SIP=.2,SIP_PTS=10,REFILL_PTS=50;
+const SIP=.2,SIP_PTS=10,REFILL_PTS=50,WORST=30,KO_SIPS=50;   // 6 Maß: hardly able to walk; 10 Maß: knocked out
 const ptsEl=$('#pts'),popsEl=$('#pops');
 function popup(text,cls=''){const e=document.createElement('span');e.className='pop '+cls;e.textContent=text;popsEl.appendChild(e);setTimeout(()=>e.remove(),1700);}
-function hudGame(){ptsEl.textContent=fmt(G.score);$('#barMass i').style.width=Math.round(G.fill*100)+'%';$('#barMood i').style.width=Math.round(G.drunk*100)+'%';
+function hudGame(){ptsEl.textContent=fmt(G.score);$('#barMass i').style.width=Math.round(G.fill*100)+'%';$('#barMood i').style.width=Math.round(Math.min(1,G.sips/KO_SIPS)*100)+'%';$('#barMood').classList.toggle('danger',G.sips>=40);
   $('#hud').classList.toggle('empty',!G.hasBeer);}
 function audioAt(){return AC?Math.max(AC.currentTime,0)+.02:0;}
 function clink(t,g=.07){if(!AC)return;for(const[f0,k]of[[R(2250,2450),1],[R(3100,3350),.6],[R(4700,5100),.3]]){const o=AC.createOscillator();o.type='sine';o.frequency.value=f0;
@@ -1150,17 +1151,23 @@ function dropGlass(){const a=heading+R(-.6,.6),x=P.x+Math.sin(heading)*.35+Math.
   empties.setMatrixAt(emptyN%60,_m);emptyN++;empties.count=Math.min(60,emptyN);empties.instanceMatrix.needsUpdate=true;}
 
 function prost(){
-  if(!started||paused)return;const now=performance.now()/1000;
+  if(!started||paused||G.ko)return;const now=performance.now()/1000;
   if(!G.hasBeer){showHint('Your Maß is empty. Find a Kellnerin in the Festhalle Sonnenwirt for a fresh one.',5);popup('Leer!','small');return;}
   if(now-G.sipT<1.6)return;
   G.sipT=now;G.sipDone=false;G.cheerUntil=now+1.7;
   const t=audioAt();if(AC){clink(t);prostShout(t+.06);gulps(t+.55,3);}
 }
 function tickGame(t){
-  if(!G.sipDone&&t-G.sipT>.85){G.sipDone=true;G.fill=Math.max(0,G.fill-SIP);if(G.fill<.02)G.fill=0;G.score+=SIP_PTS;G.sips++;G.drunk=1-Math.exp(-G.sips/9);
-    popup('+'+SIP_PTS);if(G.fill===0)G.emptyAt=t+.75;hudGame();}
+  if(!G.sipDone&&t-G.sipT>.85){G.sipDone=true;G.fill=Math.max(0,G.fill-SIP);if(G.fill<.02)G.fill=0;G.score+=SIP_PTS;G.sips++;G.drunk=Math.min(1,G.sips/WORST);
+    popup('+'+SIP_PTS);hudGame();
+    if(G.sips>=KO_SIPS){knockOut(t+.45);return;}
+    if(G.fill===0)G.emptyAt=t+.75;
+    const m=G.sips/5;if(m===6&&G.warned<6){G.warned=6;showHint('Sechs Maß. The Wiesn is spinning: you can hardly walk straight.',6);}
+    else if(m===8&&G.warned<8){G.warned=8;showHint('Acht Maß. Two more and you are out cold.',6);}
+    else if(m===9&&G.warned<9){G.warned=9;showHint('Neun Maß! One more Maß and you go down.',6);}}
   if(G.emptyAt&&t>G.emptyAt){G.emptyAt=0;G.hasBeer=false;player.rec[9]=player.rec[9]-(player.rec[9]%2);dropGlass();thunk(audioAt());
     showHint(isTouch?'Ausgetrunken! Leave the glass and find a Kellnerin in the Festhalle Sonnenwirt: she carries fresh Maß.':'Ausgetrunken! Find a Kellnerin in the Festhalle Sonnenwirt: walk up to her for a fresh Maß.',9);hudGame();}
+  if(G.ko)return;
   if(!G.hasBeer&&!G.emptyAt){let best=null,bd=9;
     for(const k of crowd.kellner){const dx=k.rec[0]-P.x,dz=k.rec[2]-P.z,d2=dx*dx+dz*dz;if(d2<bd){bd=d2;best=k;}}
     if(best){if(bd<2.8*2.8)best.w.stop=Math.max(best.w.stop||0,t+2.6);
@@ -1168,6 +1175,59 @@ function tickGame(t){
         popup('+'+REFILL_PTS+' Frische Maß!','big');const a=audioAt();clink(a,.09);clink(a+.14,.06);if(AC)prostShout(a+.35,.7);showHint('Frische Maß! Prost!',3);hudGame();}}}
   player.rec[27]=G.fill;
 }
+
+/* ten Maß: knocked out, flat on your back, Game Over */
+const P0={x:P.x,z:P.z,yaw:P.yaw,pitch:P.pitch};
+const goEl=$('#gameover'),_c0=new V3(),_c1=new V3();
+function knockOut(at){
+  G.ko=at;G.koShown=false;G.hasBeer=false;G.fill=0;G.emptyAt=0;
+  const pr=player.rec;pr[9]=pr[9]-(pr[9]%2);pr[10]=-1;
+  heading=P.yaw+Math.PI;pr[3]=heading;P.vx=P.vz=0;
+  for(const k in keys)keys[k]=false;stickZone.hidden=true;
+  setTimeout(()=>{dropGlass();thunk(audioAt());},500);
+  setTimeout(()=>{const t=audioAt();if(AC){hit(t,{freq:60,gain:.5,dur:.3});prostShout(t+.5,.6);}},1150);
+  showHint('Zehn Maß. Gute Nacht!',4);
+}
+function koUpdate(dt){
+  const t=performance.now()/1000,st=t-G.ko,pr=player.rec;
+  if(st<0){pr[4]=AN.idle[0];pr[5]=AN.idle[1];pr[7]=24;}
+  else if(st<2){pr[4]=AN.ko[0];pr[5]=AN.ko[1];pr[6]=-G.ko*24;pr[7]=24;}
+  else{pr[4]=AN.ko[0];pr[5]=AN.ko[1];pr[6]=AN.ko[1]-1;pr[7]=0;}
+  pr[0]=P.x;pr[2]=P.z;pr[27]=0;
+  // body lies along the ground behind where it stood; the head ends up ~1.6 m back
+  const fx=Math.sin(heading),fz=Math.cos(heading);
+  const e=st<.35?0:Math.min(1,((st-.35)/.55)**2);
+  if(firstPerson&&st<1.7){
+    camera.position.set(P.x-fx*1.55*e,lerp(1.68,.2,e),P.z-fz*1.55*e);
+    camera.rotation.set(lerp(P.pitch,1.25,e),P.yaw,lerp(G.roll,.5,e));
+  }else{
+    // then rise slowly above the body and look down on it
+    const k=Math.min(1,Math.max(0,(st-(firstPerson?1.7:.6))/2.2)),kk=k*k*(3-2*k),a=st*.12;
+    _c0.set(P.x-fx*.85,.25,P.z-fz*.85);
+    _c1.set(_c0.x+Math.sin(heading+.9+a)*2.2,3.3,_c0.z+Math.cos(heading+.9+a)*2.2);
+    if(!G.koCam){G.koCam=camera.position.clone();}
+    camera.position.lerpVectors(G.koCam,_c1,kk);
+    camera.lookAt(_c0);
+  }
+  if(st>3.2&&!G.koShown){G.koShown=true;gameOver();}
+}
+function gameOver(){
+  $('#goPts').textContent=fmt(G.score);
+  $('#goText').textContent=`${Math.floor(G.sips/5)} Maß, ${G.sips} sips and you are flat on your back on the Wiesn.`;
+  document.body.classList.remove('playing');goEl.hidden=false;hud.classList.add('ko');$('#again').focus();
+  if(document.pointerLockElement)document.exitPointerLock();
+}
+function restart(){
+  Object.assign(G,{score:0,fill:1,hasBeer:true,sips:0,drunk:0,sipT:-9,sipDone:true,emptyAt:0,refillAt:-9,cheerUntil:-9,roll:0,ko:0,koShown:false,koCam:null,warned:0});
+  G.st={t:-9,side:1,amp:0,fwd:0};
+  Object.assign(P,{x:P0.x,z:P0.z,yaw:P0.yaw,pitch:P0.pitch,vx:0,vz:0});heading=P.yaw+Math.PI;
+  const pr=player.rec;pr[9]=pr[9]-(pr[9]%2)+1;pr[10]=AN.pstand;pr[4]=AN.idle[0];pr[5]=AN.idle[1];pr[6]=0;pr[7]=24;pr[27]=1;
+  emptyN=0;empties.count=0;goEl.hidden=true;hud.classList.remove('ko');
+  document.body.classList.add('playing');if(isTouch)stickZone.hidden=false;
+  showHint('A fresh start and a full Maß. Prost!',4);hudGame();
+  if(!isTouch)tryLock();
+}
+$('#again').addEventListener('click',e=>{e.stopPropagation();restart();});
 /* ---------------- loop ---------------- */
 let last=performance.now(),fpsN=0,fpsT=0,fps=0;
 const statsEl=$('#stats');

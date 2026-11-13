@@ -22,7 +22,8 @@ npm run dev
 - You start with a full Maß. Prost! (P, or the Prost! button) takes a sip: a fifth of the glass and 10 points.
 - After five sips the glass is empty and you leave it on the floor.
 - Kellnerinnen carrying armfuls of Maß walk between the tables in Festhalle Sonnenwirt. Walk up to one: she stops and you take a fresh Maß for 50 points. While your glass is empty, the radar marks them.
-- Every sip adds to the Rausch: the walk drifts, steering wanders and now and then you nearly lose your balance.
+- Every sip adds to the Rausch: the walk drifts, steering wanders and now and then you nearly lose your balance. By six Maß you can barely walk straight.
+- Ten Maß knocks you out: you fall flat on your back and it is Game Over. Nochmal! starts again.
 - The band still plays Ein Prosit every minute or so, and the whole tent drinks with it.
 
 ## Controls
