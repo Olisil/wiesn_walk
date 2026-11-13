@@ -53,12 +53,23 @@ kbd{font-family:var(--f-gotisch);font-size:14px;color:var(--ink);border:1px soli
 .act[aria-pressed="true"]:not(#bSound){background:var(--gold);color:#1a1105;border-color:var(--gold)}
 #bSound .mx{display:none}#bSound.off .mx{display:inline}#bSound.off .w1,#bSound.off .w2{display:none}
 .actions button.prost{border-color:rgba(232,180,76,.55);color:var(--gold)}
+#score{position:absolute;right:0;top:46px;text-align:right;pointer-events:none;line-height:1;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+#score .pts{font-family:var(--f-gotisch);font-weight:700;font-size:46px;color:#f0c75a;-webkit-text-stroke:2px #140c03;paint-order:stroke fill;text-shadow:0 3px 0 #000,0 0 18px rgba(0,0,0,.45);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+#score .lab{font-family:var(--f-gotisch);font-weight:600;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:#f4ecd8;text-shadow:0 1px 3px #000}
+#pops{position:absolute;right:0;top:118px;width:300px;height:0;pointer-events:none}
+.pop{position:absolute;right:0;top:0;font-family:var(--f-gotisch);font-weight:700;font-size:32px;color:#a6e46e;-webkit-text-stroke:1.5px #0f1c05;paint-order:stroke fill;text-shadow:0 2px 0 #000;white-space:nowrap;animation:wwpop 1.6s ease-out forwards}
+.pop.big{color:#f0c75a;font-size:34px;-webkit-text-stroke-color:#140c03}
+.pop.small{color:#f4ecd8;font-size:26px;-webkit-text-stroke-color:#000;right:40px}
+@keyframes wwpop{0%{opacity:0;transform:translateY(16px) scale(.75)}12%{opacity:1;transform:translateY(0) scale(1.1)}24%{transform:scale(1)}78%{opacity:1}100%{opacity:0;transform:translateY(-40px)}}
+@media (prefers-reduced-motion:reduce){.pop{animation:wwfade 1.6s linear forwards}@keyframes wwfade{0%,80%{opacity:1}100%{opacity:0}}}
+#hud.empty #barMass{box-shadow:0 0 0 2px #e0603c;animation:wwblink 1s steps(2) infinite}
+@keyframes wwblink{50%{box-shadow:0 0 0 2px transparent}}
 #radar{position:absolute;left:0;bottom:0;width:min(250px,44vw);display:flex;flex-direction:column;gap:4px}
 #map{display:block;width:100%;height:auto;max-width:100%;border:2px solid rgba(0,0,0,.7);box-sizing:border-box;background:#3a4a34}
 .bars{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .bar{height:8px;background:rgba(0,0,0,.6);position:relative;overflow:hidden}
 .bar i{position:absolute;left:0;top:0;bottom:0;width:60%;display:block;transition:width .4s}
-#barMood i{background:var(--green)}
+#barMood i{background:#d9673a}
 #barMass i{background:var(--blue)}
 .barlab{display:flex;justify-content:space-between;font-family:var(--f-gotisch);font-weight:600;font-size:13px;text-shadow:0 1px 3px #000}
 #area{position:absolute;right:0;bottom:0;text-align:right;max-width:52%;transition:opacity 1.2s}
@@ -119,11 +130,13 @@ kbd{font-family:var(--f-gotisch);font-size:14px;color:var(--ink);border:1px soli
   #district{font-size:15px}
   #hint{top:60px;max-width:min(330px,calc(100% - 130px))}
   #stats{display:none}
+  #score{top:60px}#score .pts{font-size:38px}#pops{top:120px}
 }
 @media (pointer:coarse) and (max-height:520px){
   #area{top:30%}
   #place{font-size:30px}
   #hint{top:0;left:0;max-width:min(330px,calc(100% - 260px))}
+  #score .pts{font-size:32px}#score .lab{font-size:12px}
 }
 /* short screens (phones on their side): everything needed to start fits without scrolling */
 @media (max-height:520px){
