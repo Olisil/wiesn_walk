@@ -548,7 +548,7 @@ buildWheel();buildCarousel();buildLamps();buildSkyline();
 scene.add(glow(outGlow));
 
 /* ---------------- crowd: Blender-made Trachten characters, GPU-skinned from baked bone textures ---------------- */
-const crowdU={uTime:{value:0},uProsit:{value:0},uSchunkel:{value:0}};
+const crowdU={uTime:{value:0},uProsit:{value:0},uSchunkel:{value:0},uDrink:{value:0}};
 const TR=await (await fetch('data/trachten.json')).json();
 function b64(s,T){const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new T(u.buffer);}
 const NB=TR.bones.length;
@@ -565,22 +565,24 @@ function trMat(boneTex,hi){
   const m=new THREE.MeshLambertMaterial({vertexColors:true});
   m.onBeforeCompile=sh=>{
     Object.assign(sh.uniforms,crowdU,{uBones:{value:boneTex}});
-    sh.vertexShader=(hi?'#define LOD_HI\n':'')+`uniform float uTime;uniform float uProsit;uniform float uSchunkel;uniform highp sampler2D uBones;
+    sh.vertexShader=(hi?'#define LOD_HI\n':'')+`uniform float uTime;uniform float uProsit;uniform float uSchunkel;uniform float uDrink;uniform highp sampler2D uBones;
 attribute vec4 aJ;attribute vec4 aW;attribute float aPart;
 attribute vec4 iA;attribute vec4 iB;attribute vec4 iC;attribute vec4 iC0;attribute vec4 iC1;attribute vec4 iC2;attribute vec4 iC3;
 varying float vPartF;varying float vCheck;varying vec3 vObj;
 mat4 bm(int f,int b){int x=b*3;vec4 r0=texelFetch(uBones,ivec2(x,f),0),r1=texelFetch(uBones,ivec2(x+1,f),0),r2=texelFetch(uBones,ivec2(x+2,f),0);
   return mat4(r0.x,r1.x,r2.x,0.,r0.y,r1.y,r2.y,0.,r0.z,r1.z,r2.z,0.,r0.w,r1.w,r2.w,1.);}
+float wrapf(float a,float n){return a-n*floor((a+.5)/n);}
 mat4 sk(float f){int fi=int(f+.5);return aW.x*bm(fi,int(aJ.x+.5))+aW.y*bm(fi,int(aJ.y+.5))+aW.z*bm(fi,int(aJ.z+.5))+aW.w*bm(fi,int(aJ.w+.5));}
 `+sh.vertexShader.replace('#include <beginnormal_vertex>',`
   float tt=uTime*iB.w+iB.z;float f0=floor(tt);
-  mat4 S=sk(iB.x+mod(f0,iB.y));
+  mat4 S=sk(iB.x+wrapf(f0,iB.y));
   #ifdef LOD_HI
-  S=S*(1.-(tt-f0))+sk(iB.x+mod(f0+1.,iB.y))*(tt-f0);
+  S=S*(1.-(tt-f0))+sk(iB.x+wrapf(f0+1.,iB.y))*(tt-f0);
   #endif
-  if(iC.w>.5&&uSchunkel>.01)S=S*(1.-uSchunkel)+sk(120.+mod(floor(uTime*24.25),52.))*uSchunkel;
+  if(iC.w>.5&&uSchunkel>.01)S=S*(1.-uSchunkel)+sk(120.+wrapf(floor(uTime*24.25),52.))*uSchunkel;
   float beer=mod(iC.y,2.),hat=mod(floor(iC.y*.5),2.);
-  if(iC.z>=0.&&beer>.5&&uProsit>.01)S=S*(1.-uProsit)+sk(iC.z+mod(floor(uTime*12.+iB.z),24.))*uProsit;
+  if(iC.z>=0.&&beer>.5&&uProsit>.01)S=S*(1.-uProsit)+sk(iC.z+wrapf(floor(uTime*12.+iB.z),24.))*uProsit;
+  if(iC.z>=0.&&beer>.5&&uDrink>.01)S=S*(1.-uDrink)+sk((iC.z>210.?292.:268.)+wrapf(floor(uTime*20.+iB.z),24.))*uDrink;
   vec3 lp=(S*vec4(position,1.)).xyz;vec3 ln=mat3(S)*normal;
   if((aPart>6.5&&aPart<8.5&&beer<.5)||(((aPart>8.5&&aPart<9.5)||(aPart>16.5&&aPart<18.5))&&hat<.5))lp=vec3(0.,1.,0.);
   float cr=cos(iA.w),sr=sin(iA.w);
@@ -625,8 +627,34 @@ mat4 sk(float f){int fi=int(f+.5);return aW.x*bm(fi,int(aJ.x+.5))+aW.y*bm(fi,int
   m.customProgramCacheKey=()=>'trachten-'+boneTex.uuid+(hi?'-hi':'-lo');
   return m;
 }
+
+/* Drinking after the Prosit, built from the Blender rig: Idle and Sit frames with the chest leaning back, the chin up and the
+   Maß arm raised to the mouth (forward kinematics around the posed joints), with a few gulps. Frames 268-291 stand, 292-315 sit. */
+const JOINTS={Bursch:{chest:[0,1.33,-.005],head:[0,1.57,-.005],ua:[-.2,1.44,-.01],fa:[-.245,1.17,-.03],ha:[-.27,.92,0]},
+  Madl:{chest:[0,1.25,-.005],head:[0,1.46,-.005],ua:[-.175,1.35,-.01],fa:[-.205,1.1,-.03],ha:[-.225,.87,0]}};
+function addDrink(src,frames,name){
+  const per=NB*12,out=new Float32Array((frames+48)*per);out.set(src);
+  const J=JOINTS[name],bi=n=>TR.bones.indexOf(n),X=new V3(1,0,0),Y=new V3(0,1,0);
+  const CH=bi('chest'),HD=bi('head'),UA=bi('upperarm.R'),FA=bi('forearm.R'),HA=bi('hand.R');
+  const UPPER=['chest','neck','head','shoulder.L','upperarm.L','forearm.L','hand.L','shoulder.R','upperarm.R','forearm.R','hand.R'].map(bi);
+  const get=(f,b)=>{const o=f*per+b*12,a=src;return new THREE.Matrix4().set(a[o],a[o+1],a[o+2],a[o+3],a[o+4],a[o+5],a[o+6],a[o+7],a[o+8],a[o+9],a[o+10],a[o+11],0,0,0,1);};
+  const rotAbout=(p,ax,deg)=>new THREE.Matrix4().makeTranslation(p.x,p.y,p.z).multiply(new THREE.Matrix4().makeRotationAxis(ax,deg*Math.PI/180)).multiply(new THREE.Matrix4().makeTranslation(-p.x,-p.y,-p.z));
+  [[24,48,-36,-45,0],[72,48,-14,-59,1]].forEach(([b0,bl,ue,fe,k])=>{
+    for(let f=0;f<24;f++){
+      const M=[];for(let b=0;b<NB;b++)M[b]=get(b0+((f*2)%bl),b);
+      const apply=(T,list)=>{for(const b of list)M[b]=T.clone().multiply(M[b]);};
+      const gulp=Math.sin(f/24*Math.PI*4);
+      apply(rotAbout(new V3(...J.chest).applyMatrix4(M[CH]),X,-4),UPPER);
+      apply(rotAbout(new V3(...J.head).applyMatrix4(M[HD]),X,-16+2*gulp),[HD]);
+      const pu=new V3(...J.ua).applyMatrix4(M[UA]);apply(rotAbout(pu,Y,26).multiply(rotAbout(pu,X,ue)),[UA,FA,HA]);
+      const pf=new V3(...J.fa).applyMatrix4(M[FA]);apply(rotAbout(pf,Y,14).multiply(rotAbout(pf,X,fe-4*gulp)),[FA,HA]);
+      const ph=new V3(...J.ha).applyMatrix4(M[HA]);apply(rotAbout(ph,X,14),[HA]);
+      const dst=(frames+k*24+f)*per;
+      for(let b=0;b<NB;b++){const e=M[b].elements;out.set([e[0],e[4],e[8],e[12],e[1],e[5],e[9],e[13],e[2],e[6],e[10],e[14]],dst+b*12);}
+    }});
+  return out;}
 const CHARS=['Bursch','Madl'].map(name=>{
-  const ch=TR.chars[name];const bt=new THREE.DataTexture(addWalkBeer(b64(ch.mats,Float32Array),ch.frames),NB*3,ch.frames+24,THREE.RGBAFormat,THREE.FloatType);
+  const ch=TR.chars[name];const bt=new THREE.DataTexture(addDrink(addWalkBeer(b64(ch.mats,Float32Array),ch.frames),ch.frames+24,name),NB*3,ch.frames+72,THREE.RGBAFormat,THREE.FloatType);
   bt.minFilter=bt.magFilter=THREE.NearestFilter;bt.needsUpdate=true;
   const geos=['hi','mid','lo'].map(k=>{const L=ch[k],g=new THREE.InstancedBufferGeometry();
     g.setAttribute('position',new THREE.BufferAttribute(b64(L.pos,Float32Array),3));g.setAttribute('normal',new THREE.BufferAttribute(b64(L.nor,Float32Array),3));
@@ -735,8 +763,22 @@ const MEL=[[[72,3]],[[69,1],[72,1],[77,1]],[[76,2],[74,1]],[[72,3]],[[70,1],[72,
   [[72,1],[69,1],[72,1]],[[77,2],[76,1]],[[74,2],[77,1]],[[74,3]],[[72,1],[69,1],[65,1]],[[67,1],[70,1],[76,1]],[[77,3]],[[0,3]]];
 const hz=m=>440*Math.pow(2,(m-69)/12);
 function noiseBuf(sec){const b=AC.createBuffer(1,AC.sampleRate*sec,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b;}
+/* iOS plays Web Audio in the 'ambient' session, which the ring/silent switch mutes. A looping silent
+   <audio> element (started inside the tap) moves the page to the 'playback' session, like a music player. */
+function unlockIOSAudio(){try{
+  const n=4000,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,8000,true);v.setUint32(28,16000,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+  const a=new Audio(URL.createObjectURL(new Blob([b],{type:'audio/wav'})));a.loop=true;a.setAttribute('playsinline','');a.play().catch(()=>{});unlockIOSAudio.el=a;
+}catch(e){}}
 function initAudio(){
-  if(AC)return;try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;return;}
+  if(AC)return;
+  try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
+  unlockIOSAudio();
+  try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;return;}
+  const wake=()=>{if(AC&&!paused&&AC.state!=='running')AC.resume().catch(()=>{});};
+  addEventListener('touchend',wake,{passive:true});addEventListener('pointerdown',wake);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)wake();});
   master=AC.createGain();master.gain.value=.8;master.connect(AC.destination);
   const verb=AC.createConvolver();const L=AC.sampleRate*2.4,ir=AC.createBuffer(2,L,AC.sampleRate);for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<L;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/L,3.2);}verb.buffer=ir;
   verbSend=AC.createGain();verbSend.gain.value=.25;verbSend.connect(verb);verb.connect(master);
@@ -948,11 +990,11 @@ function drawRadar(){const W=mapC.width,H=mapC.height;mctx.setTransform(1,0,0,1,
 let mass=.25,areaTimer=0;
 const DISTRICT={'Festhalle Sonnenwirt':'Festhalle · Wirtsbudenstraße','Wirtsbudenstraße':'Theresienwiese · München','Riesenrad':'Schaustellerstraße','Theresienwiese':'München'};
 const startEl=$('#start'),hud=$('#hud'),go=$('#go'),hint=$('#hint');
-function begin(){startEl.hidden=true;hud.hidden=false;paused=false;if(isTouch)stickZone.hidden=false;
+function begin(){document.body.classList.add('playing');startEl.hidden=true;hud.hidden=false;paused=false;if(isTouch)stickZone.hidden=false;
   if(!started){started=true;P.x=4;P.z=-62;P.yaw=2.46;P.pitch=-.03;initAudio();showHint(hint.textContent,14);lastAuto=performance.now()/1000;}
   if(AC&&AC.state==='suspended')AC.resume();
   if(!isTouch)tryLock();canvas.focus();}
-function pause(){paused=true;startEl.hidden=false;stickZone.hidden=true;go.textContent='Continue walking';$('#eyebrow').textContent='Paused';if(AC&&AC.state==='running')AC.suspend();for(const k in keys)keys[k]=false;}
+function pause(){document.body.classList.remove('playing');paused=true;startEl.hidden=false;stickZone.hidden=true;go.textContent='Continue walking';$('#eyebrow').textContent='Paused';if(AC&&AC.state==='running')AC.suspend();for(const k in keys)keys[k]=false;}
 function resume(){begin();}
 go.addEventListener('click',begin);
 $('#bProsit').addEventListener('click',e=>{e.stopPropagation();callProsit();});
@@ -1041,6 +1083,7 @@ function updateEnv(dt,t){
   let sch;if(AC){sch=band.state==='song'?1:0;}else{sch=(now%50)<34?1:0;}
   crowdU.uSchunkel.value+=(sch-crowdU.uSchunkel.value)*Math.min(1,dt*1.2);
   const pr=now>prositStart&&now<prositEnd?1:0;
+  const dr=now>prositEnd-.3&&now<prositEnd+4.6?1:0;crowdU.uDrink.value+=(dr-crowdU.uDrink.value)*Math.min(1,dt*(dr?3:1.4));
   crowdU.uProsit.value+=(pr-crowdU.uProsit.value)*Math.min(1,dt*(pr?3.5:1.6));
   if(AC){const d=Math.hypot(P.x-stageW.x,P.z-stageW.z);const T=AC.currentTime;
     bandGain.gain.setTargetAtTime(inside?.48*clamp(1.25-d/50,.45,1):.2/(1+dDoor/22),T,.25);

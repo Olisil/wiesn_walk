@@ -1,0 +1,15 @@
+{
+  "name": "Wiesn Walk",
+  "short_name": "Wiesn Walk",
+  "description": "Walk the Munich Wiesn at golden hour: beer tents, thousands of guests in Tracht, a brass band and Ein Prosit. A free browser game by Nassau.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "background_color": "#0b0d14",
+  "theme_color": "#0b0d14",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
