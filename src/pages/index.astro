@@ -1,0 +1,76 @@
+---
+// Wiesn Walk is plain HTML + JS; its files live in public/.
+// Webflow Cloud sets the base path from the environment's mount path (e.g. /apps/wiesn_walk) at build time;
+// <base> makes every relative URL resolve under it, with or without a trailing slash.
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0b0d14">
+<base href={base}>
+<title>Wiesn Walk — a free browser game by Nassau</title>
+<meta name="description" content="Walk the Munich Wiesn at golden hour: beer tents, thousands of guests in Dirndl and Lederhosen, a brass band and Ein Prosit. Free, in your browser, on desktop and phone.">
+<meta property="og:title" content="Wiesn Walk">
+<meta property="og:description" content="A free browser game: walk the Wiesn at golden hour, step into the Festhalle and raise your Maß.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Grenze+Gotisch:wght@400;600;800&family=Grenze:wght@400;500;600&display=swap">
+<link rel="preload" href="data/trachten.json" as="fetch" crossorigin>
+<link rel="modulepreload" href="controls.js">
+<link rel="modulepreload" href="gyro.js">
+<link rel="stylesheet" href="style.css">
+<script is:inline src="lib/three.min.js"></script>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+<div id="ui">
+  <div id="start" role="dialog" aria-labelledby="ttl">
+    <div class="eyebrow" id="eyebrow">Theresienwiese · München · at sunset</div>
+    <h1 id="ttl">Wiesn Walk</h1>
+    <p class="lede">Golden hour on the Wiesn. You walk as a Bursch in Lederhosen through a street of beer tents, among guests in Dirndl and Tracht. Festhalle Sonnenwirt, ahead on your left, is open: go in for the bandstand, the galleries and a hall that sways to the waltz.</p>
+    <div class="how" id="how"></div>
+    <p class="how-note" id="howNote"></p>
+    <div class="qrow">
+      <span class="qlabel">Crowd</span>
+      <div class="seg" role="group" aria-label="Crowd density">
+        <button id="qFull" aria-pressed="true">Full <span id="nFull">…</span></button>
+        <button id="qLight" aria-pressed="false">Light <span id="nLight">…</span></button>
+      </div>
+    </div>
+    <button id="go" disabled>Building the Wiesn…</button>
+    <p class="note">The Bursch and Madl were modelled, rigged and animated in Blender. Tent names, facades and the layout are invented. Ein Prosit der Gemütlichkeit by Bernhard Dittrich (1898) is in the public domain. A free app by <a href="https://nassau.se/apps" target="_top">Nassau</a>.</p>
+  </div>
+  <div id="hud" hidden>
+    <div id="stats">—</div>
+    <div id="hint">Festhalle Sonnenwirt is ahead on your left. Walk in through the arch.</div>
+    <div class="actions">
+      <button id="bView" class="act" title="Switch view (V)" aria-label="Switch view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>View</span><kbd>V</kbd></button>
+      <button id="bProsit" class="act prost" title="Prosit (P)" aria-label="Prosit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6h10v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M15 9.5h2.5a2.5 2.5 0 0 1 0 5H15"/><path d="M5 9h10M8.5 12.5v5M11.5 12.5v5"/><path d="M5.5 6c0-1.7 1.6-3 3.5-3s3.5 1.3 3.5 3"/></svg><span>Prosit</span><kbd>P</kbd></button>
+      <button id="bSound" class="act" title="Sound (M)" aria-label="Sound on" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path class="w1" d="M15.5 9a4.5 4.5 0 0 1 0 6"/><path class="w2" d="M18 6.5a8 8 0 0 1 0 11"/><path class="mx" d="M16 9.5l5 5M21 9.5l-5 5"/></svg><span id="soundLabel">Sound on</span><kbd>M</kbd></button>
+      <button id="gyroBtn" class="act" hidden aria-pressed="false" title="Look around by moving your phone" aria-label="Look around by moving your phone"><span class="gy"></span><span>Tilt</span></button>
+      <button id="fsBtn" class="act" hidden aria-pressed="false" title="Full screen (F)" aria-label="Full screen"><span class="fsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></span><span>Full screen</span><kbd>F</kbd></button>
+    </div>
+    <div class="fs-help" id="fsHelp" hidden role="dialog"><b>Full screen</b><p>This browser can't show a web page in full screen. Add Wiesn Walk to your home screen instead: open the browser's Share menu and choose Add to Home Screen. Opened from there, it fills the whole screen.</p><button class="fs-help-x" id="fsHelpX" aria-label="Close">×</button></div>
+    <button id="bProst" class="prost-big" hidden aria-label="Prosit">Prost!</button>
+    <div id="radar">
+      <canvas id="map" width="500" height="320"></canvas>
+      <div class="bars"><div class="bar" id="barMood"><i></i></div><div class="bar" id="barMass"><i></i></div></div>
+      <div class="barlab"><span>Stimmung</span><span>Maß</span></div>
+    </div>
+    <div id="area"><div id="place">Wirtsbudenstraße</div><div id="district">Theresienwiese · München</div></div>
+    <div class="cross"></div>
+  </div>
+</div>
+<div id="stickZone" hidden><div id="stickPad"><div id="knob"></div></div></div>
+
+<script is:inline type="module" src="game.js"></script>
+</body>
+</html>
