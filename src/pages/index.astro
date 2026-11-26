@@ -1,5 +1,5 @@
 ---
-// Wiesn Walk is plain HTML + JS; its files live in public/.
+// Wiesen Sim is plain HTML + JS; its files live in public/.
 // Webflow Cloud sets the base path from the environment's mount path (e.g. /apps/wiesn_walk) at build time;
 // <base> makes every relative URL resolve under it, with or without a trailing slash.
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
@@ -14,13 +14,13 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#0b0d14">
 <base href={base}>
-<title>Wiesn Walk — a free browser game by Nassau</title>
+<title>Wiesen Sim — a free browser game by Nassau</title>
 <meta name="description" content="Walk the Munich Wiesn at golden hour: beer tents, thousands of guests in Dirndl and Lederhosen, a brass band and Ein Prosit. Free, in your browser, on desktop and phone.">
-<meta property="og:title" content="Wiesn Walk">
+<meta property="og:title" content="Wiesen Sim">
 <meta property="og:description" content="A free browser game: walk the Wiesn at golden hour, step into the Festhalle and raise your Maß.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://www.nassau.se/wiesnwalk/cover.jpg">
-<meta property="og:url" content="https://www.nassau.se/wiesnwalk">
+<meta property="og:image" content="https://www.nassau.se/wiesensim/cover.jpg">
+<meta property="og:url" content="https://www.nassau.se/wiesensim">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -37,12 +37,12 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 <body>
 <header class="topbar app-header" id="appHeader">
   <div class="app-header-start">
-    <a class="app-logo" href="./" aria-label="Wiesn Walk"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <a class="app-logo" href="./" aria-label="Wiesen Sim"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
 <clipPath id="wwm"><rect x="12" y="14" width="30" height="40" rx="5"/></clipPath>
 <rect x="12" y="14" width="30" height="40" rx="5" fill="#f3f5f7"/><g clip-path="url(#wwm)" fill="#2f78c0"><path d="M4.5 4L8.0 9L4.5 14L1.0 9Z"/><path d="M18.5 4L22.0 9L18.5 14L15.0 9Z"/><path d="M32.5 4L36.0 9L32.5 14L29.0 9Z"/><path d="M46.5 4L50.0 9L46.5 14L43.0 9Z"/><path d="M60.5 4L64.0 9L60.5 14L57.0 9Z"/><path d="M8 9L11.5 14L8 19L4.5 14Z"/><path d="M22 9L25.5 14L22 19L18.5 14Z"/><path d="M36 9L39.5 14L36 19L32.5 14Z"/><path d="M50 9L53.5 14L50 19L46.5 14Z"/><path d="M64 9L67.5 14L64 19L60.5 14Z"/><path d="M4.5 14L8.0 19L4.5 24L1.0 19Z"/><path d="M18.5 14L22.0 19L18.5 24L15.0 19Z"/><path d="M32.5 14L36.0 19L32.5 24L29.0 19Z"/><path d="M46.5 14L50.0 19L46.5 24L43.0 19Z"/><path d="M60.5 14L64.0 19L60.5 24L57.0 19Z"/><path d="M8 19L11.5 24L8 29L4.5 24Z"/><path d="M22 19L25.5 24L22 29L18.5 24Z"/><path d="M36 19L39.5 24L36 29L32.5 24Z"/><path d="M50 19L53.5 24L50 29L46.5 24Z"/><path d="M64 19L67.5 24L64 29L60.5 24Z"/><path d="M4.5 24L8.0 29L4.5 34L1.0 29Z"/><path d="M18.5 24L22.0 29L18.5 34L15.0 29Z"/><path d="M32.5 24L36.0 29L32.5 34L29.0 29Z"/><path d="M46.5 24L50.0 29L46.5 34L43.0 29Z"/><path d="M60.5 24L64.0 29L60.5 34L57.0 29Z"/><path d="M8 29L11.5 34L8 39L4.5 34Z"/><path d="M22 29L25.5 34L22 39L18.5 34Z"/><path d="M36 29L39.5 34L36 39L32.5 34Z"/><path d="M50 29L53.5 34L50 39L46.5 34Z"/><path d="M64 29L67.5 34L64 39L60.5 34Z"/><path d="M4.5 34L8.0 39L4.5 44L1.0 39Z"/><path d="M18.5 34L22.0 39L18.5 44L15.0 39Z"/><path d="M32.5 34L36.0 39L32.5 44L29.0 39Z"/><path d="M46.5 34L50.0 39L46.5 44L43.0 39Z"/><path d="M60.5 34L64.0 39L60.5 44L57.0 39Z"/><path d="M8 39L11.5 44L8 49L4.5 44Z"/><path d="M22 39L25.5 44L22 49L18.5 44Z"/><path d="M36 39L39.5 44L36 49L32.5 44Z"/><path d="M50 39L53.5 44L50 49L46.5 44Z"/><path d="M64 39L67.5 44L64 49L60.5 44Z"/><path d="M4.5 44L8.0 49L4.5 54L1.0 49Z"/><path d="M18.5 44L22.0 49L18.5 54L15.0 49Z"/><path d="M32.5 44L36.0 49L32.5 54L29.0 49Z"/><path d="M46.5 44L50.0 49L46.5 54L43.0 49Z"/><path d="M60.5 44L64.0 49L60.5 54L57.0 49Z"/><path d="M8 49L11.5 54L8 59L4.5 54Z"/><path d="M22 49L25.5 54L22 59L18.5 54Z"/><path d="M36 49L39.5 54L36 59L32.5 54Z"/><path d="M50 49L53.5 54L50 59L46.5 54Z"/><path d="M64 49L67.5 54L64 59L60.5 54Z"/></g>
 <path d="M42 23h5a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6h-5" fill="none" stroke="#e8b44c" stroke-width="4"/>
 <rect x="12" y="14" width="30" height="40" rx="5" fill="none" stroke="#e8b44c" stroke-width="3"/>
-<path d="M10 14c0-5 5-8 10-6 3-4 10-4 13 0 5-2 11 1 11 6z" fill="#f4ecd8"/></svg><span class="ww-name">Wiesn Walk</span></a>
+<path d="M10 14c0-5 5-8 10-6 3-4 10-4 13 0 5-2 11 1 11 6z" fill="#f4ecd8"/></svg><span class="ww-name">Wiesen Sim</span></a>
   </div>
   <div class="topbar-end">
     <a class="nav-text-link" href="/products" aria-label="Apps home"><span>Apps<span class="nav-text-more">&nbsp;home</span></span></a>
@@ -56,8 +56,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 <div id="ui">
   <div id="start" role="dialog" aria-labelledby="ttl">
     <div class="eyebrow" id="eyebrow">Theresienwiese · München · at sunset</div>
-    <h1 id="ttl">Wiesn Walk</h1>
-    <p class="lede">Golden hour on the Wiesn. You walk as a Bursch in Lederhosen with a full Maß, among guests in Dirndl and Tracht. Every Prost is a sip and 10 points; five sips empty the glass. Then find a Kellnerin in the Festhalle Sonnenwirt, ahead on your left, for a fresh Maß and 50 points. Each sip makes the walk harder; six Maß and you can barely stand, ten and you are out.</p>
+    <h1 id="ttl">Wiesen Sim</h1>
+    <p class="lede">Golden hour on the Wiesn. You walk as a Bursch in Lederhosen with a full Maß, among guests in Dirndl and Tracht. Every Prost is a sip and 10 points; five sips empty the glass. Then find a Kellnerin in the Festhalle Sonnenwirt, ahead on your left, for a fresh Maß and 50 points. Prost with the people around you for more points, and sneak past the Ordner up to the band for a Prosit with the whole tent. Each sip makes the walk harder; six Maß and you can barely stand, ten and you are out.</p>
     <div class="how" id="how"></div>
     <p class="how-note" id="howNote"></p>
     <div class="qrow">
@@ -71,7 +71,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
     <p class="note">The Bursch, the Madl and the Kellnerin were modelled, rigged and animated in Blender. Tent names, facades and the layout are invented. Ein Prosit der Gemütlichkeit by Bernhard Dittrich (1898) is in the public domain. A free app by <a href="https://www.nassau.se/products" target="_top">Nassau</a>.</p>
   </div>
   <div id="gameover" role="dialog" aria-labelledby="goTtl" hidden>
-    <div class="eyebrow">Zehn Maß · Game Over</div>
+    <div class="eyebrow" id="goEye">Zehn Maß · Game Over</div>
     <h1 id="goTtl">K.o.!</h1>
     <p class="lede" id="goText">Ten Maß and you are flat on your back on the Wiesn.</p>
     <div class="go-score"><span id="goPts">0</span><span>Punkte</span></div>
@@ -87,7 +87,7 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
       <button id="gyroBtn" class="act" hidden aria-pressed="false" title="Look around by moving your phone" aria-label="Look around by moving your phone"><span class="gy"></span><span>Tilt</span></button>
       <button id="fsBtn" class="act" hidden aria-pressed="false" title="Full screen (F)" aria-label="Full screen"><span class="fsi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></span><span>Full screen</span><kbd>F</kbd></button>
     </div>
-    <div class="fs-help" id="fsHelp" hidden role="dialog"><b>Full screen</b><p>This browser can't show a web page in full screen. Add Wiesn Walk to your home screen instead: open the browser's Share menu and choose Add to Home Screen. Opened from there, it fills the whole screen.</p><button class="fs-help-x" id="fsHelpX" aria-label="Close">×</button></div>
+    <div class="fs-help" id="fsHelp" hidden role="dialog"><b>Full screen</b><p>This browser can't show a web page in full screen. Add Wiesen Sim to your home screen instead: open the browser's Share menu and choose Add to Home Screen. Opened from there, it fills the whole screen.</p><button class="fs-help-x" id="fsHelpX" aria-label="Close">×</button></div>
     <button id="bProst" class="prost-big" hidden aria-label="Prost: take a sip">Prost!</button>
     <div id="radar">
       <canvas id="map" width="500" height="320"></canvas>
@@ -96,6 +96,8 @@ const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
     </div>
     <div id="score" aria-live="polite"><span class="pts" id="pts">0</span><span class="lab">Punkte</span></div>
     <div id="pops" aria-hidden="true"></div>
+    <div id="subtitle" role="status" aria-live="assertive" hidden></div>
+    <div id="spot" aria-hidden="true">!</div>
     <div id="area"><div id="place">Wirtsbudenstraße</div><div id="district">Theresienwiese · München</div></div>
     <div class="cross"></div>
   </div>

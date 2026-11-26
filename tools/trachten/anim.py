@@ -466,40 +466,69 @@ def frames_drink(rig, seated, n=24):
     return out
 
 
-def frames_sip(rig, n=36):
-    """raise the Maß, drink, lower it again (played once, standing)"""
+def frames_sip(rig, n=60):
+    """the player's own Prost: raise the Maß to clink (like the crowd's Prosit), then rim to the lips exactly as in
+    DrinkStand, drink, and lower it again. 2.5 s at 24 fps, played once."""
     out = []
     fem = rig.kind != 'Bursch'
+    # key times (frames): raise 0-8, clink 8-22, to lips 22-30, drink 30-50, lower 50-60
     for f in range(n):
-        if f < 10:
-            k = sm(f / 9)
-        elif f < 26:
-            k = 1.0
-        else:
-            k = 1 - sm((f - 26) / 9)
-        gul = math.sin(math.pi * 2 * max(0, f - 10) / 16) if 10 <= f < 26 else 0
         P = Pose(rig)
-        P.off = Vector((0, 0.006 * k, -0.012))
-        spine_chain(P, lean=1.5 - 7 * k, head_pitch=-2 - 19 * k - 2 * gul, keep_head=False)
+        up = sm(f / 8) if f < 22 else 1.0                # raised (prost) amount
+        lip = 0.0 if f < 22 else (sm((f - 22) / 8) if f < 50 else 1 - sm((f - 50) / 9))
+        low = 0.0 if f < 50 else sm((f - 50) / 9)
+        gul = math.sin(2 * math.pi * (f - 30) / 10) if 30 <= f < 50 else 0.0
+        P.off = Vector((0, 0.006 * lip, -0.012))
+        spine_chain(P, lean=1.5 * (1 - up) - 1 * up * (1 - lip) - 6 * lip, head_pitch=-2 - 6 * up * (1 - lip) - 18 * lip - 2 * gul, keep_head=False)
         legs_planted(P, stand_feet(rig, 0.025 if not fem else 0.012, 0.03), foot_rot={'L': R(Z, 9).to_matrix(), 'R': R(Z, -9).to_matrix()})
-        # blend between carry and drink by blending wrist targets and hand rotations
         S = P.S()
-        Wc, cy = carry_target(rig, S, high=0.07)
-        Gc = R(Z, math.degrees(cy) + 18).to_matrix()
+        C = S['chest']
+        cy = math.degrees(yaw_of(C.to_3x3()))
+        Wc, _ = carry_target(rig, S, high=0.07)
+        Gc = R(Z, cy + 18).to_matrix()
+        hz = rig.h['head'].z + 0.06
+        Wp = C @ Vector((-0.17 if not fem else -0.15, -0.36, hz - 0.05))
+        Gp = R(X, -10).to_matrix() @ R(Z, cy + 30).to_matrix()
         Hm = S['head']
         lips = Hm @ rig.lips
         face_dir = (Hm.to_3x3() @ Vector((0, -1, 0)))
         fy = math.degrees(math.atan2(face_dir.x, -face_dir.y))
-        tilt = (40 + 20 * min(1, max(0, (f - 10) / 14))) if f >= 10 else 40
-        tilt += 2 * gul
-        Gd = R(Z, fy).to_matrix() @ R(X, -tilt).to_matrix()
+        Gd = R(Z, fy).to_matrix() @ R(X, -(58 + 3 * gul)).to_matrix()
         Wd = lips + face_dir * 0.004 - Gd @ rim_local('R', Vector((0, 1, 0)))
-        qc, qd = Gc.to_quaternion(), Gd.to_quaternion()
-        G = qc.slerp(qd, k).to_matrix()
-        # arc the wrist forward on the way up so the Maß does not pass through the chin
-        W = Wc.lerp(Wd, k) + (S['chest'].to_3x3() @ Vector((0, -0.09, 0.02))) * math.sin(math.pi * k)
+        if f < 22:
+            k = up
+            W = Wc.lerp(Wp, k) + (C.to_3x3() @ Vector((0, -0.06, 0))) * math.sin(math.pi * k)
+            G = Gc.to_quaternion().slerp(Gp.to_quaternion(), k).to_matrix()
+        elif f < 50:
+            k = lip
+            W = Wp.lerp(Wd, k)
+            G = Gp.to_quaternion().slerp(Gd.to_quaternion(), k).to_matrix()
+        else:
+            k = low
+            W = Wd.lerp(Wc, k) + (C.to_3x3() @ Vector((0, -0.08, 0.02))) * math.sin(math.pi * k)
+            G = Gd.to_quaternion().slerp(Gc.to_quaternion(), k).to_matrix()
         arm_to(P, 'R', W, G, pole=Vector((-0.9, 0.3, -0.5)), twist=0.4)
         arm_relaxed(P, 'L', swing=-4, bend=16, out=7)
+        out.append(P.S())
+    return out
+
+
+def frames_guard(rig, n=48):
+    """Ordner at the bandstand stairs: feet apart, arms folded, head scanning"""
+    out = []
+    for f in range(n):
+        P = Pose(rig)
+        P.off = Vector((0.006 * cyc(f, n), 0, -0.01))
+        spine_chain(P, lean=-2, roll=-0.8 * cyc(f, n), head_yaw=22 * cyc(f, n, 1, 0.1), head_pitch=-3, keep_head=False)
+        legs_planted(P, stand_feet(rig, 0.07), foot_rot={'L': R(Z, 12).to_matrix(), 'R': R(Z, -12).to_matrix()})
+        S = P.S()
+        C = S['chest']
+        zc = rig.h['chest'].z
+        WR = C @ Vector((0.1, -0.2, zc - 0.03))
+        WL = C @ Vector((-0.11, -0.215, zc - 0.075))
+        cy = math.degrees(yaw_of(C.to_3x3()))
+        arm_to(P, 'R', WR, R(Z, cy - 75).to_matrix() @ R(Y, -20).to_matrix(), pole=Vector((-0.6, 0.2, -0.8)), twist=0.5)
+        arm_to(P, 'L', WL, R(Z, cy + 75).to_matrix() @ R(Y, 20).to_matrix(), pole=Vector((0.6, 0.2, -0.8)), twist=0.5)
         out.append(P.S())
     return out
 
@@ -589,7 +618,7 @@ def frames_knockout(rig, n=48):
 
 
 ANIMS = [('Walk', 24), ('Idle', 48), ('Sit', 48), ('Schunkeln', 52), ('Cheer', 24), ('PrositStand', 24), ('PrositSit', 24),
-         ('WalkBeer', 24), ('DrinkStand', 24), ('DrinkSit', 24), ('Sip', 36), ('ServeWalk', 24), ('ServeIdle', 48), ('KnockOut', 48)]
+         ('WalkBeer', 24), ('DrinkStand', 24), ('DrinkSit', 24), ('Sip', 60), ('ServeWalk', 24), ('ServeIdle', 48), ('KnockOut', 48), ('Guard', 48)]
 
 
 def all_frames(rig):
@@ -598,7 +627,7 @@ def all_frames(rig):
         'Schunkeln': lambda: frames_schunkeln(rig), 'Cheer': lambda: frames_cheer(rig), 'PrositStand': lambda: frames_prosit(rig, False),
         'PrositSit': lambda: frames_prosit(rig, True), 'WalkBeer': lambda: frames_walk(rig, True), 'DrinkStand': lambda: frames_drink(rig, False),
         'DrinkSit': lambda: frames_drink(rig, True), 'Sip': lambda: frames_sip(rig), 'ServeWalk': lambda: frames_serve_walk(rig),
-        'ServeIdle': lambda: frames_serve_idle(rig), 'KnockOut': lambda: frames_knockout(rig)}
+        'ServeIdle': lambda: frames_serve_idle(rig), 'KnockOut': lambda: frames_knockout(rig), 'Guard': lambda: frames_guard(rig)}
     out, meta, start = {}, [], 0
     for name, n in ANIMS:
         fr = gen[name]()

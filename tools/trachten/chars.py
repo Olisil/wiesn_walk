@@ -574,12 +574,12 @@ def build(J, kind, lod):
             ellipsoid(M, fp, np.eye(3), [0.017, 0.017, 0.017], P['trim'], WH, 7, 4)
     if kind == 'Bursch':
         # Tirolerhut: crown, brim, band, Gamsbart (only drawn when the hat flag is on)
-        hz = H.c[2] + H.azu * 0.66
+        hz = H.c[2] + H.azu * 0.5
         cy = H.c[1] + 0.002
-        crown = [(hz - 0.006, .096, .112), (hz + 0.02, .094, .108), (hz + 0.06, .084, .097), (hz + 0.095, .064, .074), (hz + 0.103, .045, .055)]
+        crown = [(hz - 0.006, .086, .1), (hz + 0.02, .085, .098), (hz + 0.06, .077, .089), (hz + 0.095, .06, .069), (hz + 0.103, .043, .052)]
         rings = [dict(c=[0, cy, z], u=[1, 0, 0], v=[0, -1, 0], ru=rx, rvp=ry, rvn=ry, p=2.3, w=WH, part=P['felt']) for z, rx, ry in crown]
         loft(M, rings, q['torso'], 1, cap0=None, cap1=0.006)
-        brim = [(hz - 0.004, .095, .111), (hz - 0.01, .152, .168), (hz - 0.002, .157, .173), (hz + 0.002, .096, .112)]
+        brim = [(hz - 0.004, .085, .099), (hz - 0.01, .145, .16), (hz - 0.002, .15, .165), (hz + 0.002, .086, .1)]
 
         def bw(a):
             return 1.0
@@ -589,15 +589,15 @@ def build(J, kind, lod):
         V = M.verts()
         for vi in range(i0, M.n):  # brim turns up at the back and sides
             v = V[vi]
-            r = np.hypot(v[0] / 0.152, (v[1] - cy) / 0.168)
+            r = np.hypot(v[0] / 0.145, (v[1] - cy) / 0.16)
             if r > 0.75:
-                up = 0.022 * smooth(0.0, 1.0, (v[1] - cy) / 0.168 + 0.3) + 0.012 * abs(v[0]) / 0.152
+                up = 0.022 * smooth(0.0, 1.0, (v[1] - cy) / 0.16 + 0.3) + 0.012 * abs(v[0]) / 0.145
                 V[vi][2] += up * smooth(0.75, 1.0, r)
         M.V = [V]
         rings = [dict(c=[0, cy, z], u=[1, 0, 0], v=[0, -1, 0], ru=rx * 1.03, rvp=ry * 1.03, rvn=ry * 1.03, p=2.3, w=WH, part=P['hatband']) for z, rx, ry in crown[:2]]
         loft(M, rings, q['torso'], 1, cap0=None, cap1=None)
         if det >= 1:
-            gp = np.array([0.08, cy + 0.06, hz + 0.03])
+            gp = np.array([0.071, cy + 0.052, hz + 0.03])
             ellipsoid(M, gp, np.eye(3), [0.018, 0.018, 0.045], P['gamsbart'], WH, 7, 5)
             ellipsoid(M, gp - np.array([0, 0, 0.035]), np.eye(3), [0.012, 0.012, 0.01], P['hatband'], WH, 6, 3)
 

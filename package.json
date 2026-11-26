@@ -1,7 +1,7 @@
 {
   "name": "wiesn_walk",
   "version": "1.0.0",
-  "description": "Wiesn Walk: a free browser game on the Munich Wiesn, by Nassau",
+  "description": "Wiesen Sim: a free browser game on the Munich Wiesn, by Nassau",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",

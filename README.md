@@ -1,4 +1,6 @@
-# Wiesn Walk
+# Wiesen Sim
+
+(Formerly Wiesn Walk. Live at nassau.se/wiesensim; the old address nassau.se/wiesnwalk redirects there.)
 
 A free browser game by [Nassau](https://www.nassau.se/products): walk the Munich Wiesn at golden hour, step into Festhalle Sonnenwirt, sway to the waltz and drink your way to a high score.
 
@@ -24,7 +26,9 @@ npm run dev
 - Kellnerinnen carrying armfuls of Maß walk between the tables in Festhalle Sonnenwirt. Walk up to one: she stops and you take a fresh Maß for 50 points. While your glass is empty, the radar marks them.
 - Every sip adds to the Rausch: the walk drifts, steering wanders and now and then you nearly lose your balance. By six Maß you can barely walk straight.
 - Ten Maß knocks you out: you fall flat on your back and it is Game Over. Nochmal! starts again.
+- Prost! clinks with everyone within about 3 m who has a Maß: 10 points for the sip plus 10 for each person. People who just clinked with you need about 40 seconds before they join again.
 - The band still plays Ein Prosit every minute or so, and the whole tent drinks with it.
+- Up on the bandstand, one Prost sets off Ein Prosit for the whole tent: 500 points plus half a point per guest. Two Ordner guard the stairs. Sneak through the gap while both look out over the tables; if they see you, they send you back. The third time you are geschnappt: game over.
 
 ## Controls
 

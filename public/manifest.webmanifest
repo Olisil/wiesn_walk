@@ -1,6 +1,6 @@
 {
-  "name": "Wiesn Walk",
-  "short_name": "Wiesn Walk",
+  "name": "Wiesen Sim",
+  "short_name": "Wiesen Sim",
   "description": "Walk the Munich Wiesn at golden hour: beer tents, thousands of guests in Tracht, a brass band and Ein Prosit. A free browser game by Nassau.",
   "start_url": "./",
   "scope": "./",
