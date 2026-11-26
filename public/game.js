@@ -1030,7 +1030,9 @@ function updatePlayer(dt){
   let f=0,s=0,run=keys.ShiftLeft||keys.ShiftRight;
   if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;if(keys.KeyD||keys.ArrowRight)s+=1;if(keys.KeyA||keys.ArrowLeft)s-=1;
   if(stickId!==null){f-=stk.y;s+=stk.x;if(Math.hypot(stk.x,stk.y)>.95)run=true;}
-  const l=Math.hypot(f,s);if(l>1){f/=l;s/=l;}
+  const l0=Math.hypot(f,s);if(l0>1){f/=l0;s/=l0;}
+  const drinking=performance.now()/1000-G.sipT<2.5;if(drinking){f=s=0;run=false;}
+  const l=Math.hypot(f,s);
   /* Rausch: the more sips, the more the walk drifts, the steering wanders and now and then you nearly fall */
   const d=G.drunk,t=performance.now()/1000,moving=l>.1?1:0;
   if(d>0){const wa=d*1.05*(Math.sin(t*.61+2)+.55*Math.sin(t*1.53+.7)+.25*Math.sin(t*3.1));const c0=Math.cos(wa),s0=Math.sin(wa);const f2=f*c0-s*s0;s=f*s0+s*c0;f=f2;
@@ -1038,9 +1040,10 @@ function updatePlayer(dt){
   const sp=(run?6.2-2.2*d:3.1)*(1-.25*d),sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
   const tx=(-sn*f+cs*s)*sp,tz=(-cs*f-sn*s)*sp;const k=Math.min(1,dt*(10-7.5*d));P.vx+=(tx-P.vx)*k;P.vz+=(tz-P.vz)*k;
   let ex=0,ez=0;
-  if(d>0){const dr=d*(.5+1.1*moving)*(Math.sin(t*.93)+.6*Math.sin(t*2.17+1.3)+.35*Math.sin(t*3.9+.4))*.75;ex+=cs*dr;ez+=-sn*dr;
+  if(d>0&&!drinking){const dr=d*(.5+1.1*moving)*(Math.sin(t*.93)+.6*Math.sin(t*2.17+1.3)+.35*Math.sin(t*3.9+.4))*.75;ex+=cs*dr;ez+=-sn*dr;
     if(t-G.st.t>1.1&&Math.random()<dt*d*d*(.25+.7*moving+.6*(run?1:0))){G.st={t,side:Math.random()<.5?-1:1,amp:1.8+3.2*d,fwd:Math.random()<.45?1:0};popup(pick(['Hoppla!','Ups!','Obacht!','Hoppala!']),'small');}
     const st=t-G.st.t;if(st<1.4){const k2=G.st.amp*Math.exp(-st*2.6)*Math.min(1,st*8);ex+=(cs*G.st.side-sn*G.st.fwd*.6)*k2;ez+=(-sn*G.st.side-cs*G.st.fwd*.6)*k2;}}
+  if(G.push){const k=(t-G.push.t0)/.42;if(k>=1)G.push=null;else{const v0=4.6*(1-k);ex+=G.push.x*v0;ez+=G.push.z*v0;}}
   if(G.esc&&G.esc.phase!=='back'){escortPlayer(dt,t);ex=ez=0;}
   else{const px0=P.x,pz0=P.z;P.x+=(P.vx+ex)*dt;P.z+=(P.vz+ez)*dt;collide(P);bandFloor(px0,pz0,dt);}
   const v=Math.hypot(P.vx+ex,P.vz+ez);P.bob+=v*dt*2.1;
@@ -1262,7 +1265,7 @@ function gameOver(kind){
   if(document.pointerLockElement)document.exitPointerLock();
 }
 function restart(){
-  Object.assign(G,{score:0,fill:1,hasBeer:true,sips:0,drunk:0,sipT:-9,sipDone:true,emptyAt:0,refillAt:-9,cheerUntil:-9,roll:0,ko:0,koShown:false,koCam:null,warned:0,partners:0,tired:0,strikes:0,stun:0,stageT:-999,escort:0,seen:0,over:false,strikeT:[],esc:null,take:null,stageEsc:0});
+  Object.assign(G,{score:0,fill:1,hasBeer:true,sips:0,drunk:0,sipT:-9,sipDone:true,emptyAt:0,refillAt:-9,cheerUntil:-9,roll:0,ko:0,koShown:false,koCam:null,warned:0,partners:0,tired:0,strikes:0,stun:0,stageT:-999,escort:0,seen:0,over:false,strikeT:[],esc:null,take:null,stageEsc:0,push:null,grace:0});
   for(const g of guards){const p=bandI.grp.localToWorld(new V3(g.post[0],0,g.post[1]));g.rec[0]=p.x;g.rec[1]=0;g.rec[2]=p.z;g.rec[3]=bandI.rot;guardAnim(g,AN.guard,24);}
   for(const a of crowd.agents){a.prostT=-99;a.rec[28]=-99;}P.y=0;$('#hud').classList.remove('spotted');
   G.st={t:-9,side:1,amp:0,fwd:0};
@@ -1331,7 +1334,7 @@ function tickGuards(dt,t){
   const watched=front&&seen,through=gap&&guards.some(g=>!g.away);
   G.seen=through?G.seen+dt*3:watched?G.seen+dt:Math.max(0,G.seen-dt*2);
   $('#hud').classList.toggle('spotted',watched||through);
-  if(G.seen>.3&&!t_stun()&&!onStage()&&!G.stageEsc)caught(t);
+  if(G.seen>.3&&!t_stun()&&!onStage()&&!G.stageEsc&&!(t<(G.grace||0)))caught(t);
 }
 function caught(t){
   // the Ordner forget you after a minute
@@ -1340,7 +1343,9 @@ function caught(t){
   const a=audioAt();if(AC){hit(a,{freq:110,gain:.25,dur:.12});}
   if(G.strikes>=3){takedown(t);return;}
   // escorted a few metres back towards the door
-  const p=bandI.grp.localToWorld(new V3(R(-1.5,1.5),0,bandI.SZ+11.2));P.x=p.x;P.z=p.z;P.y=0;P.vx=P.vz=0;G.stun=t+1.4;
+  // shoved back about a metre, away from the stairs (towards the door)
+  const d0=toWorld(0,bandI.SZ+1).clone(),d1=toWorld(0,bandI.SZ+2),ux=d1.x-d0.x,uz=d1.z-d0.z;
+  G.push={t0:t,x:ux,z:uz};P.vx=P.vz=0;G.stun=t+1.1;G.grace=t+2.6;
   popup(G.strikes===1?'Erwischt! 1/3':'Erwischt! 2/3','small');
   showHint(G.strikes===1?'The Ordner turn away now and then. Sneak past them while they look out over the tables. They forget you after a minute.':'Careful: one more time within the minute and you are geschnappt.',5);
 }
@@ -1353,7 +1358,7 @@ function stageProst(now){
   const pts=500+Math.round(guests/2);G.score+=pts;popup('+'+pts+' Ganzes Zelt!','big');hudGame();
   callProsit();const t=audioAt();if(AC){clink(t,.1);prostShout(t+.1,1.8);}
   say('Ein Prosit! Ein Prosit der Gemütlichkeit!','The whole tent raises its Maß with you.');
-  G.stageEsc=now+2.7;   // you finish your sip up there, then the Ordner come for you
+  G.stageEsc=now+.05;   // the Ordner set off at once and reach you just as you finish your sip
 }
 function tickStage(t){if(G.stageEsc&&t>G.stageEsc&&!G.esc){G.stageEsc=0;startEscort(t);}}
 
@@ -1372,7 +1377,7 @@ function placeOnPath(g,pts,u,speed){const[x,z,dx,dz]=along(pts,u),w=toWorld(x,z)
   if(speed>.05){const want=Math.atan2(dx,dz)+bandI.rot;let dd=want-r[3];dd=Math.atan2(Math.sin(dd),Math.cos(dd));r[3]+=dd*.35;guardAnim(g,AN.walk,Math.round(24*speed/STRIDE[0]));}}
 function startEscort(t){
   const L=toBand(P.x,P.z),SZ=bandI.SZ;G.stun=t+99;P.vx=P.vz=0;
-  G.esc={phase:'rush',t0:t,L:[L.x,L.z]};
+  G.esc={phase:'rush',t0:t,L:[L.x,L.z],rush:Math.max(1.4,G.sipT+2.5-t)};
   for(const g of guards){const sx=g.sx;g.path=[[g.post[0],g.post[1]],[sx*.42,SZ+STAIR.z0+STAIR.len+.2],[sx*.42,SZ+STAIR.z0-.1],[L.x+sx*.55,L.z+.3]];}
   say('Ja spinnst du? Runter da, aber zackig!','Are you mad? Down from there, right now!');
 }
@@ -1385,9 +1390,9 @@ function escortPlayer(dt,t){
 }
 function escortGuards(dt,t){
   const e=G.esc,SZ=bandI.SZ;
-  if(e.phase==='rush'){const u=clamp((t-e.t0)/2.2,0,1),uu=u*u*(3-2*u);
-    for(const g of guards)placeOnPath(g,g.path,uu,u<1?pathLen(g.path)/2.2*1.2:0);
-    if(u>=1){const L=e.L;e.phase='lead';e.t1=t+.5;e.path=[[L[0],L[1]],[0,SZ+STAIR.z0-.1],[0,SZ+STAIR.z0+STAIR.len+.2],[0,SZ+11.3]];e.dur=pathLen(e.path)/1.45;
+  if(e.phase==='rush'){const u=clamp((t-e.t0)/e.rush,0,1),uu=u*u*(3-2*u);
+    for(const g of guards)placeOnPath(g,g.path,uu,u<1?pathLen(g.path)/e.rush*1.2:0);
+    if(u>=1){const L=e.L;e.phase='lead';e.t1=t+.15;e.path=[[L[0],L[1]],[0,SZ+STAIR.z0-.1],[0,SZ+STAIR.z0+STAIR.len+.2],[0,SZ+11.3]];e.dur=pathLen(e.path)/1.45;
       for(const g of guards){g.path=e.path.map((p,i)=>[p[0]+g.sx*(i===0?.55:.48),p[1]+(i===0?.3:0)]);guardAnim(g,AN.guard,24);}}
     return;}
   if(e.phase==='lead'){const u=clamp((t-e.t1)/e.dur,0,1);
