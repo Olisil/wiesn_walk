@@ -122,6 +122,9 @@ for rn, rig in RIGS.items():
                 M3 = C @ S[b] @ Ci
                 mats += [M3[r][c] for r in range(3) for c in range(4)]
     data['chars'][rn] = {'mats': b64(np.array(mats, np.float32)), 'frames': sum(n for _, n in anim.ANIMS), 'stride': R.stride}
+    Sl = fr['Prone'][-1]
+    wc = (Sl['hand.L'] @ R.h['hand.L'] + Sl['hand.R'] @ R.h['hand.R']) / 2
+    data['chars'][rn]['proneWrist'] = [round(wc.x, 3), round(wc.z, 3), round(-wc.y, 3)]
     for name, n in anim.ANIMS:
         write_action(rig, rn + '_' + name, fr[name])
     print(rn, 'anims', time.time() - t0)

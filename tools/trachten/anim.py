@@ -617,8 +617,82 @@ def frames_knockout(rig, n=48):
     return out
 
 
+def frames_prone(rig, n=48):
+    """taken down by the Ordner: pushed forward onto the stomach, hands pulled behind the back, head turned aside.
+    Played once, last frame held."""
+    out = []
+    hz = rig.h['hips']
+    piv = Vector((0, -0.14, 0.0))
+    for f in range(n):
+        P = Pose(rig)
+        if f < 5:
+            th, buck, lift = 6 * sm(f / 4), 0.05 * sm(f / 4), 0.0
+        elif f < 16:
+            k = (f - 5) / 11
+            th, buck, lift = 6 + 84 * k * k, 0.05 * (1 - k), 0.1 * k
+        else:
+            k = min(1, (f - 16) / 4)
+            th, buck, lift = 90 - 3 * math.sin(math.pi * k) * (1 if f < 20 else 0), 0.0, 0.1
+        q = R(X, th)
+        Qm = q.to_matrix()
+        P.off = piv - hz + Qm @ (hz - piv) + Vector((0, 0, lift)) + Qm @ Vector((0, 0, -buck))
+        P.Q['hips'] = q
+        down = sm((f - 12) / 10) if f > 12 else 0.0
+        P.rot('spine', R(X, -4 * down))
+        P.rot('neck', R(X, -12 * down))
+        P.rot('head', R(Z, 75 * down), R(X, -10 * down))
+        for side, s_ in (('L', 1), ('R', -1)):
+            P.Q['thigh.' + side] = R(Y, 5 * s_ * down)
+            P.Q['shin.' + side] = R(X, 6 * down)
+            P.Q['foot.' + side] = R(X, 35 * down)
+        # arms flail forward while falling, then are held crossed behind the back
+        S = P.S()
+        Hm = S['hips']
+        Rh = Hm.to_3x3()
+        for side, s_ in (('L', 1), ('R', -1)):
+            if down < 0.02:
+                flail = sm(f / 10)
+                P.Q['upperarm.' + side] = qmul(R(Y, -12 * s_), R(X, -60 * flail))
+                P.Q['forearm.' + side] = R(X, -25 * flail)
+                continue
+            back = Hm @ Vector((0.03 * s_, 0.17, hz.z + 0.07 + (0.02 if side == 'L' else 0)))
+            free = S['chest'] @ Vector((0.3 * s_, -0.25, rig.h['chest'].z - 0.25))
+            W = free.lerp(back, down)
+            G = Rh @ R(Z, 180).to_matrix() @ R(Y, 90 * s_).to_matrix()
+            arm_to(P, side, W, G, pole=Rh @ Vector((0.9 * s_, 0.6, 0.0)), twist=0.5)
+            S = P.S()
+        out.append(P.S())
+    return out
+
+
+def frames_pin(rig, n=48):
+    """an Ordner drops to one knee and holds the wrists of the person on the floor in front of him"""
+    out = []
+    for f in range(n):
+        P = Pose(rig)
+        k = sm(f / 10)
+        hips_down = 0.47 * k
+        P.off = Vector((0, 0.05 * k, -hips_down))
+        spine_chain(P, lean=38 * k, head_pitch=24 * k + 2 * math.sin(2 * math.pi * f / 24) * k, keep_head=False)
+        S = P.S()
+        a = rig.h['foot.L']
+        feet = {'R': Vector((-0.1, 0.0, a.z)).lerp(Vector((-0.1, 0.42, 0.1)), k), 'L': Vector((0.12, 0.0, a.z)).lerp(Vector((0.13, -0.38, a.z)), k)}
+        P.ik('thigh.R', 'shin.R', feet['R'], rig.h['thigh.R'] + Vector((0, -1, -1)), R(X, 60 * k).to_matrix(), 'foot.R', twist_share=0)
+        P.ik('thigh.L', 'shin.L', feet['L'], rig.h['thigh.L'] + Vector((0, -1, 0.8)), Matrix.Identity(3), 'foot.L', twist_share=0)
+        S = P.S()
+        breathe = 0.01 * math.sin(2 * math.pi * f / 24)
+        for side, s_ in (('L', 1), ('R', -1)):
+            hold = Vector((0.05 * s_, -0.5, 0.38 + breathe))
+            stand = S['chest'] @ Vector((0.11 * s_, -0.2, rig.h['chest'].z - 0.05))
+            W = stand.lerp(hold, k)
+            G = R(X, 90 * k).to_matrix() @ R(Z, -60 * s_ * k).to_matrix()
+            arm_to(P, side, W, G, pole=Vector((0.8 * s_, 0.3, 0.2)), twist=0.5)
+        out.append(P.S())
+    return out
+
+
 ANIMS = [('Walk', 24), ('Idle', 48), ('Sit', 48), ('Schunkeln', 52), ('Cheer', 24), ('PrositStand', 24), ('PrositSit', 24),
-         ('WalkBeer', 24), ('DrinkStand', 24), ('DrinkSit', 24), ('Sip', 60), ('ServeWalk', 24), ('ServeIdle', 48), ('KnockOut', 48), ('Guard', 48)]
+         ('WalkBeer', 24), ('DrinkStand', 24), ('DrinkSit', 24), ('Sip', 60), ('ServeWalk', 24), ('ServeIdle', 48), ('KnockOut', 48), ('Guard', 48), ('Prone', 48), ('Pin', 48)]
 
 
 def all_frames(rig):
@@ -627,7 +701,7 @@ def all_frames(rig):
         'Schunkeln': lambda: frames_schunkeln(rig), 'Cheer': lambda: frames_cheer(rig), 'PrositStand': lambda: frames_prosit(rig, False),
         'PrositSit': lambda: frames_prosit(rig, True), 'WalkBeer': lambda: frames_walk(rig, True), 'DrinkStand': lambda: frames_drink(rig, False),
         'DrinkSit': lambda: frames_drink(rig, True), 'Sip': lambda: frames_sip(rig), 'ServeWalk': lambda: frames_serve_walk(rig),
-        'ServeIdle': lambda: frames_serve_idle(rig), 'KnockOut': lambda: frames_knockout(rig), 'Guard': lambda: frames_guard(rig)}
+        'ServeIdle': lambda: frames_serve_idle(rig), 'KnockOut': lambda: frames_knockout(rig), 'Guard': lambda: frames_guard(rig), 'Prone': lambda: frames_prone(rig), 'Pin': lambda: frames_pin(rig)}
     out, meta, start = {}, [], 0
     for name, n in ANIMS:
         fr = gen[name]()

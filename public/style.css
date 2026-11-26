@@ -383,3 +383,10 @@ body.playing .app-header{transform:translateY(calc(-100% - 24px));opacity:0;poin
 #hud.spotted::after{content:"";position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 90px rgba(220,40,30,.55)}
 @keyframes wwspot{from{transform:translateX(-50%) scale(1)}to{transform:translateX(-50%) scale(1.15)}}
 @media (prefers-reduced-motion:reduce){#hud.spotted #spot{animation:none}}
+
+/* "Buy me a coffee", corrected by hand: coffee struck out, beer scribbled over it in red */
+.bmc-button{position:relative;overflow:visible}
+.bmc-strike{position:absolute;left:calc(16px + 127.9px * .69);width:calc(127.9px * .31);top:50%;height:2.5px;background:#e0302c;border-radius:2px;transform:rotate(-7deg);pointer-events:none}
+.bmc-beer{position:absolute;left:calc(16px + 127.9px * .69);top:-15px;font-family:'Caveat','Segoe Print','Bradley Hand',cursive;font-weight:700;font-size:25px;line-height:1;color:#e0302c;
+  transform:rotate(-9deg);text-shadow:0 0 2px #1a0d05,0 1px 3px rgba(0,0,0,.65);pointer-events:none;letter-spacing:.01em}
+@media (max-width:999px){.bmc-strike{display:none}.bmc-beer{left:auto;right:-10px;top:-13px;font-size:19px}}

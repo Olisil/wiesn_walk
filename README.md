@@ -28,11 +28,11 @@ npm run dev
 - Ten Maß knocks you out: you fall flat on your back and it is Game Over. Nochmal! starts again.
 - Prost! clinks with everyone within about 3 m who has a Maß: 10 points for the sip plus 10 for each person. People who just clinked with you need about 40 seconds before they join again.
 - The band still plays Ein Prosit every minute or so, and the whole tent drinks with it.
-- Up on the bandstand, one Prost sets off Ein Prosit for the whole tent: 500 points plus half a point per guest. Two Ordner guard the stairs. Sneak through the gap while both look out over the tables; if they see you, they send you back. The third time you are geschnappt: game over.
+- Up on the bandstand, one Prost sets off Ein Prosit for the whole tent: 500 points plus half a point per guest. Two Ordner guard the stairs. Sneak through the gap while both look out over the tables; if they see you, they send you back. They forget you after a minute, but three times within a minute and they take you down: geschnappt, game over. After your Prosit up there they come up, wait until you have drunk, and walk you back down.
 
 ## Controls
 
-- Desktop: WASD to walk, Shift to run, mouse to look, V to switch view, P to drink (Prost!), M for sound, F for full screen, Esc to pause
+- Desktop: WASD to walk, Shift to run, mouse to look, V to switch view, P or left click to drink (Prost!), M for sound, F for full screen, Esc to pause
 - Phone and tablet: joystick in the lower-left corner (push to the edge to run), drag anywhere else to look, tilt button to look by moving the phone, Prost! button to drink
 
 ## Credits

@@ -565,7 +565,7 @@ const TR=await (await fetch('data/trachten.json')).json();
 function b64(s,T){const bin=atob(s),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new T(u.buffer);}
 const NB=TR.bones.length;
 const AN={},A_=n=>{const a=TR.anims.find(x=>x.name===n);return[a.start,a.frames];};
-Object.assign(AN,{guard:A_('Guard'),ko:A_('KnockOut'),walk:A_('Walk'),idle:A_('Idle'),sit:A_('Sit'),sway:A_('Schunkeln'),cheer:A_('Cheer'),pstand:A_('PrositStand')[0],psit:A_('PrositSit')[0],
+Object.assign(AN,{prone:A_('Prone'),pin:A_('Pin'),guard:A_('Guard'),ko:A_('KnockOut'),walk:A_('Walk'),idle:A_('Idle'),sit:A_('Sit'),sway:A_('Schunkeln'),cheer:A_('Cheer'),pstand:A_('PrositStand')[0],psit:A_('PrositSit')[0],
   walkBeer:A_('WalkBeer'),drinkStand:A_('DrinkStand')[0],drinkSit:A_('DrinkSit')[0],sip:A_('Sip'),serveWalk:A_('ServeWalk'),serveIdle:A_('ServeIdle')});
 const STRIDE=['Bursch','Madl','Kellnerin'].map(n=>TR.chars[n].stride||1.1);
 function trMat(boneTex,hi){
@@ -689,7 +689,7 @@ function agent(g,x,y,z,ry,kind,opt={}){
 let crowd={agents:[],walkers:[],kellner:[],slots:[],blobDyn:null,blobStatic:null,total:0,drawn:0,showIn:true,showOut:true},player=null;
 /* the drinking game: score, what is left in your Maß, how many sips you have had */
 const guards=[];
-const G={partners:0,tired:0,strikes:0,stun:0,stageT:-999,escort:0,seen:0,score:0,fill:1,hasBeer:true,sips:0,drunk:0,sipT:-9,sipDone:true,emptyAt:0,refillAt:-9,cheerUntil:-9,st:{t:-9,side:1,amp:0,fwd:0},roll:0,ko:0,koShown:false,warned:0};
+const G={strikeT:[],esc:null,take:null,stageEsc:0,partners:0,tired:0,strikes:0,stun:0,stageT:-999,escort:0,seen:0,score:0,fill:1,hasBeer:true,sips:0,drunk:0,sipT:-9,sipDone:true,emptyAt:0,refillAt:-9,cheerUntil:-9,st:{t:-9,side:1,amp:0,fwd:0},roll:0,ko:0,koShown:false,warned:0};
 function disposeCrowd(){
   for(const S of crowd.slots){scene.remove(S.mesh);S.geo.dispose();}
   for(const m of[crowd.blobDyn,crowd.blobStatic])if(m){scene.remove(m);m.geometry.dispose();}
@@ -711,7 +711,7 @@ function buildCrowd(qname){
   for(let k=0;k<q.walkIn;k++){const L=SW.lanesIn[k%SW.lanesIn.length];const dx=L[2]-L[0],dz=L[3]-L[1],len=Math.hypot(dx,dz);const kel=k%5<2;mkWalker(L[0],L[1],dx/len,dz/len,len,true,kel?{f:true,kind:'serve',beer:1,kellnerin:true}:{f:rnd()<.55,beer:1});}
   guards.length=0;
   if(bandI)for(const sx of[-1,1]){const p=bandI.grp.localToWorld(new V3(sx*1.5,0,bandI.SZ+8.15));const a=agent(1,p.x,0,p.z,bandI.rot,'idle',{f:false,beer:0,sc:1.09});
-    a.guard=true;a.sx=sx;a.look=0;a.lag=0;blobS.push(a);const r=a.rec;r[4]=AN.guard[0];r[5]=AN.guard[1];r[6]=sx>0?20:0;r[7]=24;r[9]=0;r[10]=-1;
+    a.guard=true;a.sx=sx;a.look=0;a.lag=0;a.post=[sx*1.5,bandI.SZ+8.15];blobS.push(a);const r=a.rec;r[4]=AN.guard[0];r[5]=AN.guard[1];r[6]=sx>0?20:0;r[7]=24;r[9]=0;r[10]=-1;
     r.set([.13,.15,.2,.07,.07,.08],12);r.set([.09,.09,.1],24);ag.push(a);guards.push(a);}
   player=agent(4,0,0,0,0,'idle',{f:false,beer:1,sc:1});const pr=player.rec;pr[9]=(G.hasBeer?1:0)+2+4;pr.set([.651,.227,.247,.29,.196,.125,.902,.706,.561,.333,.212,.122,.851,.812,.722,G.fill],12);ag.push(player);
   const cnt=[0,0,0];for(const a of ag)cnt[a.c]++;
@@ -900,7 +900,7 @@ const keys={};let started=false,paused=true,hadLock=false,mouseDown=false;
 const P={x:4,z:-62,yaw:2.46,pitch:-.03,bob:0,vx:0,vz:0};
 addEventListener('keydown',e=>{keys[e.code]=true;if(!started)return;
   if(e.code==='KeyP')prost();if(e.code==='KeyM')toggleSound();if(e.code==='KeyV')toggleView();if(e.code==='KeyF'&&!e.repeat&&!e.metaKey&&!e.ctrlKey)toggleFullscreen();
-  if(e.code==='Escape'&&!document.pointerLockElement&&!G.ko&&!G.over){paused?resume():pause();}
+  if(e.code==='Escape'&&!document.pointerLockElement&&!G.ko&&!G.over&&!G.take){paused?resume():pause();}
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
@@ -908,6 +908,7 @@ canvas.addEventListener('mousedown',e=>{mouseDown=true;if(started&&!paused&&!doc
 addEventListener('mouseup',()=>mouseDown=false);
 addEventListener('mousemove',e=>{if(paused)return;if(document.pointerLockElement===canvas||mouseDown){P.yaw-=e.movementX*.0022;P.pitch=clamp(P.pitch-e.movementY*.0022,-1.35,1.35);}});
 function tryLock(){try{const r=canvas.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}}
+document.addEventListener('mousedown',e=>{if(e.button===0&&document.pointerLockElement===canvas&&started&&!paused)prost();});
 document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement===canvas){hadLock=true;}else if(hadLock&&started&&!paused)pause();});
 /* touch: the Intus joystick (lower-left corner takes the thumb, the stick follows it) and drag anywhere else to look */
 const stickZone=$('#stickZone'),stickPad=$('#stickPad'),knob=$('#knob');
@@ -959,7 +960,7 @@ if(isTouch)$('#bProst').hidden=false;
   $('#how').innerHTML=isTouch
     ?tile(stickSVG(132,true),'Walk','stick')+tile(SWIPE,'Look')+(Gyro.supported?tile(PHONE_FLIP,'Tilt','flip'):'')+tile('<b>Prost!</b>','Drink','prost')
     :tile(keypadSVG({arrows:false}),'Walk','wasd')+tile(MOUSE,'Look')+tile(KEY('P'),'Prost','key')+tile(KEY('V'),'View','key');
-  $('#howNote').textContent=isTouch?'Push the stick to its edge to run. Drag anywhere else to look around. Tap Prost! to drink.':'P to drink · Shift to run · M for sound · F for full screen · Esc pauses';}
+  $('#howNote').textContent=isTouch?'Push the stick to its edge to run. Drag anywhere else to look around. Tap Prost! to drink.':'P or left click to drink · Shift to run · M for sound · F for full screen · Esc pauses';}
 
 /* radar: pre-drawn top-down map, rotated with the view each frame */
 const MX0=-170,MZ0=-210,MS=2;
@@ -999,7 +1000,7 @@ function begin(){document.body.classList.add('playing');startEl.hidden=true;hud.
   if(!started){started=true;P.x=4;P.z=-62;P.yaw=2.46;P.pitch=-.03;initAudio();showHint(hint.textContent,14);lastAuto=performance.now()/1000;}
   if(AC&&AC.state==='suspended')AC.resume();
   if(!isTouch)tryLock();canvas.focus();}
-function pause(){document.body.classList.remove('playing');paused=true;startEl.hidden=false;stickZone.hidden=true;go.textContent='Continue walking';$('#eyebrow').textContent='Paused';if(AC&&AC.state==='running')AC.suspend();for(const k in keys)keys[k]=false;}
+function pause(){if(G.over||G.ko||G.take)return;document.body.classList.remove('playing');paused=true;startEl.hidden=false;stickZone.hidden=true;go.textContent='Continue walking';$('#eyebrow').textContent='Paused';if(AC&&AC.state==='running')AC.suspend();for(const k in keys)keys[k]=false;}
 function resume(){begin();}
 go.addEventListener('click',begin);
 $('#bProsit').addEventListener('click',e=>{e.stopPropagation();prost();});
@@ -1022,6 +1023,7 @@ function collide(p){const r=.35;
   p.x=clamp(p.x,-140,140);p.z=clamp(p.z,-200,205);}
 function updatePlayer(dt){
   if(G.ko){koUpdate(dt);return;}
+  if(G.take){takeUpdate(dt);return;}
   if(G.over)return;
   if(t_stun()){for(const k in keys)keys[k]=false;}
   if(gyro.on){const q=gyro.frame(dt);if(q){const yp=yawPitchOf(q);P.yaw=yp.yaw*Math.PI/180;P.pitch=clamp(yp.pitch*Math.PI/180,-1.3,1.3);}}
@@ -1039,7 +1041,8 @@ function updatePlayer(dt){
   if(d>0){const dr=d*(.5+1.1*moving)*(Math.sin(t*.93)+.6*Math.sin(t*2.17+1.3)+.35*Math.sin(t*3.9+.4))*.75;ex+=cs*dr;ez+=-sn*dr;
     if(t-G.st.t>1.1&&Math.random()<dt*d*d*(.25+.7*moving+.6*(run?1:0))){G.st={t,side:Math.random()<.5?-1:1,amp:1.8+3.2*d,fwd:Math.random()<.45?1:0};popup(pick(['Hoppla!','Ups!','Obacht!','Hoppala!']),'small');}
     const st=t-G.st.t;if(st<1.4){const k2=G.st.amp*Math.exp(-st*2.6)*Math.min(1,st*8);ex+=(cs*G.st.side-sn*G.st.fwd*.6)*k2;ez+=(-sn*G.st.side-cs*G.st.fwd*.6)*k2;}}
-  const px0=P.x,pz0=P.z;P.x+=(P.vx+ex)*dt;P.z+=(P.vz+ez)*dt;collide(P);bandFloor(px0,pz0,dt);
+  if(G.esc&&G.esc.phase!=='back'){escortPlayer(dt,t);ex=ez=0;}
+  else{const px0=P.x,pz0=P.z;P.x+=(P.vx+ex)*dt;P.z+=(P.vz+ez)*dt;collide(P);bandFloor(px0,pz0,dt);}
   const v=Math.hypot(P.vx+ex,P.vz+ez);P.bob+=v*dt*2.1;
   {const st=t-G.st.t,sr=st<1.4?G.st.side*(.1+.22*d)*Math.sin(Math.min(1,st/.22)*Math.PI/2)*Math.exp(-st*2.1):0;
     G.roll=d*.09*Math.sin(t*.7)+d*.035*Math.sin(t*1.9)+sr;}
@@ -1249,7 +1252,7 @@ function koUpdate(dt){
   if(st>3.2&&!G.koShown){G.koShown=true;gameOver();}
 }
 function gameOver(kind){
-  G.over=true;
+  G.over=true;paused=false;startEl.hidden=true;
   $('#goPts').textContent=fmt(G.score);
   if(kind==='caught'){$('#goTtl').textContent='Geschnappt!';$('#goEye').textContent='Drei Mal erwischt · Game Over';
     $('#goText').textContent='The Ordner caught you on their stairs three times and walked you out of the Festhalle.';}
@@ -1259,12 +1262,13 @@ function gameOver(kind){
   if(document.pointerLockElement)document.exitPointerLock();
 }
 function restart(){
-  Object.assign(G,{score:0,fill:1,hasBeer:true,sips:0,drunk:0,sipT:-9,sipDone:true,emptyAt:0,refillAt:-9,cheerUntil:-9,roll:0,ko:0,koShown:false,koCam:null,warned:0,partners:0,tired:0,strikes:0,stun:0,stageT:-999,escort:0,seen:0,over:false});
+  Object.assign(G,{score:0,fill:1,hasBeer:true,sips:0,drunk:0,sipT:-9,sipDone:true,emptyAt:0,refillAt:-9,cheerUntil:-9,roll:0,ko:0,koShown:false,koCam:null,warned:0,partners:0,tired:0,strikes:0,stun:0,stageT:-999,escort:0,seen:0,over:false,strikeT:[],esc:null,take:null,stageEsc:0});
+  for(const g of guards){const p=bandI.grp.localToWorld(new V3(g.post[0],0,g.post[1]));g.rec[0]=p.x;g.rec[1]=0;g.rec[2]=p.z;g.rec[3]=bandI.rot;guardAnim(g,AN.guard,24);}
   for(const a of crowd.agents){a.prostT=-99;a.rec[28]=-99;}P.y=0;$('#hud').classList.remove('spotted');
   G.st={t:-9,side:1,amp:0,fwd:0};
   Object.assign(P,{x:P0.x,z:P0.z,yaw:P0.yaw,pitch:P0.pitch,vx:0,vz:0});heading=P.yaw+Math.PI;
   const pr=player.rec;pr[9]=pr[9]-(pr[9]%2)+1;pr[10]=AN.pstand;pr[4]=AN.idle[0];pr[5]=AN.idle[1];pr[6]=0;pr[7]=24;pr[27]=1;
-  emptyN=0;empties.count=0;goEl.hidden=true;hud.classList.remove('ko');
+  emptyN=0;empties.count=0;FG.on=false;flyMesh.visible=false;goEl.hidden=true;hud.classList.remove('ko');
   document.body.classList.add('playing');if(isTouch)stickZone.hidden=false;
   showHint('A fresh start and a full Maß. Prost!',4);hudGame();
   if(!isTouch)tryLock();
@@ -1293,12 +1297,20 @@ function bandFloor(px0,pz0,dt){
 function t_stun(){return performance.now()/1000<G.stun;}
 const GUARD_LINES=[['Halt! Da rauf derfst du ned!','Stop! You are not allowed up there.'],['Du scho wieda? Schleich di!','You again? Get lost!'],['Jetzt langt\'s! Du bist gschnappt!','That is it. You are caught!']];
 function say(de,en){const sub=$('#subtitle');sub.innerHTML=`<b>„${de}“</b><span>${en}</span>`;sub.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>sub.hidden=true,3200);
-  try{if(window.speechSynthesis&&audioOn()){const u=new SpeechSynthesisUtterance(de);u.lang='de-DE';u.rate=1.05;u.pitch=.7;u.volume=1;
-    const v=speechSynthesis.getVoices().find(v=>/^de/i.test(v.lang));if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u);}}catch(e){}}
+  try{if(window.speechSynthesis&&audioOn()){const u=new SpeechSynthesisUtterance(de);u.lang='de-DE';u.rate=.86;u.pitch=.42;u.volume=1;
+    const v=guardVoice();if(v)u.voice=v;speechSynthesis.cancel();speechSynthesis.speak(u);}}catch(e){}}
+// an older man's voice: prefer a male German voice the system has (they differ per browser and OS), pitched down
+const MALE_DE=/(conrad|killian|stefan|markus|yannick|florian|bernd|hans|klaus|jonas|ralf|male|männ|mann)/i,FEMALE_DE=/(katja|hedda|anna|petra|helena|amala|seraphina|marlene|vicki|female|frau|google deutsch)/i;
+let _gv=null;
+function guardVoice(){if(_gv)return _gv;const vs=speechSynthesis.getVoices().filter(v=>/^de/i.test(v.lang));
+  _gv=vs.find(v=>MALE_DE.test(v.name)&&/natural|online/i.test(v.name))||vs.find(v=>MALE_DE.test(v.name))||vs.find(v=>!FEMALE_DE.test(v.name))||vs[0]||null;return _gv;}
+try{speechSynthesis.getVoices();speechSynthesis.addEventListener('voiceschanged',()=>{_gv=null;});}catch(e){}
 function audioOn(){return !!AC&&AC.state==='running';}
 const guardCyc={phase:'front',until:0};
 function tickGuards(dt,t){
   if(!bandI||!guards.length)return;
+  if(G.esc){escortGuards(dt,t);$('#hud').classList.remove('spotted');return;}
+  if(G.take){$('#hud').classList.remove('spotted');return;}
   if(t>guardCyc.until){guardCyc.phase=guardCyc.phase==='front'?'away':'front';guardCyc.start=t;guardCyc.until=t+(guardCyc.phase==='front'?R(3,5.2):R(2.2,3.1));
     for(const g of guards)g.lag=R(0,.5);}
   const L=toBand(P.x,P.z),SZ=bandI.SZ;
@@ -1308,27 +1320,29 @@ function tickGuards(dt,t){
   for(const g of guards){const r=g.rec;
     const away=guardCyc.phase==='away'&&t-guardCyc.start>g.lag&&guardCyc.until-t>g.lag*.5;
     // front: watch the way to the stairs, sweeping; away: look out over the tables to the side
-    const want=bandI.rot+(G.escort?Math.atan2(P.x-r[0],P.z-r[2])-bandI.rot:away?g.sx*1.95+.25*Math.sin(t*.7+g.sx):.5*Math.sin(t*.55+g.sx*1.3));
+    const want=bandI.rot+(away?g.sx*1.95+.25*Math.sin(t*.7+g.sx):.5*Math.sin(t*.55+g.sx*1.3));
     let dd=want-r[3];dd=Math.atan2(Math.sin(dd),Math.cos(dd));r[3]+=dd*Math.min(1,dt*3.2);
     g.away=away;
     const dx=P.x-r[0],dz=P.z-r[2],d=Math.hypot(dx,dz);
     if(d<9){const ang=Math.abs(Math.atan2(Math.sin(Math.atan2(dx,dz)-r[3]),Math.cos(Math.atan2(dx,dz)-r[3])));if(ang<.95||d<.9)seen=true;}
   }
-  if(G.escort||G.ko||G.over){G.seen=0;return;}
+  if(G.ko||G.over){G.seen=0;return;}
   // walking up to the gap while they watch, or slipping through it while either of them is not looking away
   const watched=front&&seen,through=gap&&guards.some(g=>!g.away);
   G.seen=through?G.seen+dt*3:watched?G.seen+dt:Math.max(0,G.seen-dt*2);
   $('#hud').classList.toggle('spotted',watched||through);
-  if(G.seen>.3&&!t_stun()&&!onStage())caught(t);
+  if(G.seen>.3&&!t_stun()&&!onStage()&&!G.stageEsc)caught(t);
 }
 function caught(t){
-  G.seen=0;G.strikes++;const i=Math.min(2,G.strikes-1);say(...GUARD_LINES[i]);
+  // the Ordner forget you after a minute
+  G.strikeT=G.strikeT.filter(x=>t-x<60);G.strikeT.push(t);G.strikes=G.strikeT.length;
+  G.seen=0;const i=Math.min(2,G.strikes-1);say(...GUARD_LINES[i]);
   const a=audioAt();if(AC){hit(a,{freq:110,gain:.25,dur:.12});}
-  if(G.strikes>=3){G.stun=t+99;P.vx=P.vz=0;setTimeout(()=>gameOver('caught'),1600);return;}
+  if(G.strikes>=3){takedown(t);return;}
   // escorted a few metres back towards the door
-  const p=bandI.grp.localToWorld(new V3(R(-1.5,1.5),0,bandI.SZ+11.2));P.x=p.x;P.z=p.z;P.y=0;P.vx=P.vz=0;P.yaw=bandI.rot+Math.PI*0;G.stun=t+1.4;
+  const p=bandI.grp.localToWorld(new V3(R(-1.5,1.5),0,bandI.SZ+11.2));P.x=p.x;P.z=p.z;P.y=0;P.vx=P.vz=0;G.stun=t+1.4;
   popup(G.strikes===1?'Erwischt! 1/3':'Erwischt! 2/3','small');
-  showHint(G.strikes===1?'The Ordner turn away now and then. Sneak past them while they look out over the tables.':'Careful: one more time and you are geschnappt.',5);
+  showHint(G.strikes===1?'The Ordner turn away now and then. Sneak past them while they look out over the tables. They forget you after a minute.':'Careful: one more time within the minute and you are geschnappt.',5);
 }
 function stageProst(now){
   if(!G.hasBeer){showHint('Up on the bandstand, but your Maß is empty. Get a fresh one first.',4);return;}
@@ -1339,11 +1353,101 @@ function stageProst(now){
   const pts=500+Math.round(guests/2);G.score+=pts;popup('+'+pts+' Ganzes Zelt!','big');hudGame();
   callProsit();const t=audioAt();if(AC){clink(t,.1);prostShout(t+.1,1.8);}
   say('Ein Prosit! Ein Prosit der Gemütlichkeit!','The whole tent raises its Maß with you.');
-  G.escort=now+9;
+  G.stageEsc=now+2.7;   // you finish your sip up there, then the Ordner come for you
 }
-function tickStage(t){
-  if(G.escort&&t>G.escort){G.escort=0;const p=bandI.grp.localToWorld(new V3(R(-1.2,1.2),0,bandI.SZ+11.2));P.x=p.x;P.z=p.z;P.y=0;P.vx=P.vz=0;
-    say('So, jetzt aber runter da!','Right, down you come now.');showHint('The Ordner walked you back down. Try again after the next song.',5);}
+function tickStage(t){if(G.stageEsc&&t>G.stageEsc&&!G.esc){G.stageEsc=0;startEscort(t);}}
+
+/* ---- moving the Ordner (and you) along paths in the tent's own coordinates */
+function hLocal(x,z){const SZ=bandI.SZ;if(Math.abs(x)<STAIR.w+.1&&z>SZ+STAIR.z0-.3&&z<SZ+STAIR.z0+STAIR.len)return STAIR.top*clamp((SZ+STAIR.z0+STAIR.len-z)/STAIR.len,0,1);
+  return Math.hypot(x,z-SZ)<4.6?STAIR.top:0;}
+function pathLen(pts){let L=0;for(let i=1;i<pts.length;i++)L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);return L;}
+function along(pts,u){const L=pathLen(pts)*clamp(u,0,1);let acc=0;
+  for(let i=1;i<pts.length;i++){const dx=pts[i][0]-pts[i-1][0],dz=pts[i][1]-pts[i-1][1],l=Math.hypot(dx,dz);
+    if(acc+l>=L||i===pts.length-1){const k=l?clamp((L-acc)/l,0,1):1;return[pts[i-1][0]+dx*k,pts[i-1][1]+dz*k,dx/(l||1),dz/(l||1)];}acc+=l;}
+  return[pts[0][0],pts[0][1],0,1];}
+const _wv=new V3();
+function toWorld(x,z){return _wv.set(x,0,z).applyMatrix4(bandI.grp.matrixWorld);}
+function guardAnim(g,A,rate,off){const r=g.rec;if(r[4]!==A[0]||rate!==r[7]){r[4]=A[0];r[5]=A[1];r[7]=rate;if(off!==undefined)r[6]=off;}}
+function placeOnPath(g,pts,u,speed){const[x,z,dx,dz]=along(pts,u),w=toWorld(x,z),r=g.rec;r[0]=w.x;r[2]=w.z;r[1]=hLocal(x,z);
+  if(speed>.05){const want=Math.atan2(dx,dz)+bandI.rot;let dd=want-r[3];dd=Math.atan2(Math.sin(dd),Math.cos(dd));r[3]+=dd*.35;guardAnim(g,AN.walk,Math.round(24*speed/STRIDE[0]));}}
+function startEscort(t){
+  const L=toBand(P.x,P.z),SZ=bandI.SZ;G.stun=t+99;P.vx=P.vz=0;
+  G.esc={phase:'rush',t0:t,L:[L.x,L.z]};
+  for(const g of guards){const sx=g.sx;g.path=[[g.post[0],g.post[1]],[sx*.42,SZ+STAIR.z0+STAIR.len+.2],[sx*.42,SZ+STAIR.z0-.1],[L.x+sx*.55,L.z+.3]];}
+  say('Ja spinnst du? Runter da, aber zackig!','Are you mad? Down from there, right now!');
+}
+function escortPlayer(dt,t){
+  const e=G.esc;if(e.phase!=='lead'){P.vx=P.vz=0;return;}
+  const u=clamp((t-e.t1)/e.dur,0,1),[x,z,dx,dz]=along(e.path,u),w=toWorld(x,z);
+  const wx=w.x,wz=w.z;P.vx=(wx-P.x)/Math.max(dt,1e-3);P.vz=(wz-P.z)/Math.max(dt,1e-3);P.x=wx;P.z=wz;P.y=hLocal(x,z);
+  const fy=Math.atan2(-dx,-dz)-bandI.rot*0+0;const dirW=toWorld(x+dx,z+dz);const yawW=Math.atan2(-(dirW.x-wx),-(dirW.z-wz));
+  let dd=yawW-P.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));P.yaw+=dd*Math.min(1,dt*4);P.pitch*=1-Math.min(1,dt*3);
+}
+function escortGuards(dt,t){
+  const e=G.esc,SZ=bandI.SZ;
+  if(e.phase==='rush'){const u=clamp((t-e.t0)/2.2,0,1),uu=u*u*(3-2*u);
+    for(const g of guards)placeOnPath(g,g.path,uu,u<1?pathLen(g.path)/2.2*1.2:0);
+    if(u>=1){const L=e.L;e.phase='lead';e.t1=t+.5;e.path=[[L[0],L[1]],[0,SZ+STAIR.z0-.1],[0,SZ+STAIR.z0+STAIR.len+.2],[0,SZ+11.3]];e.dur=pathLen(e.path)/1.45;
+      for(const g of guards){g.path=e.path.map((p,i)=>[p[0]+g.sx*(i===0?.55:.48),p[1]+(i===0?.3:0)]);guardAnim(g,AN.guard,24);}}
+    return;}
+  if(e.phase==='lead'){const u=clamp((t-e.t1)/e.dur,0,1);
+    for(const g of guards)placeOnPath(g,g.path,u,t>e.t1&&u<1?1.45:0);
+    if(u>=1){e.phase='back';e.t2=t;G.stun=0;for(const g of guards){const r=g.rec;g.path=[[toBand(r[0],r[2]).x,toBand(r[0],r[2]).z],[g.post[0],g.post[1]]];}
+      say('So. Und jetzt schleich di.','There. Now off you go.');showHint('The Ordner walked you back down. The band needs a while before the next one anyway.',5);}
+    return;}
+  if(e.phase==='back'){const u=clamp((t-e.t2)/2.4,0,1);
+    for(const g of guards)placeOnPath(g,g.path,u,u<1?pathLen(g.path)/2.4:0);
+    if(u>=1){for(const g of guards){guardAnim(g,AN.guard,24);g.rec[1]=0;}G.esc=null;}}
+}
+
+/* ---- the third time: taken down, hands behind your back, the Maß skids away. Geschnappt. */
+const PW=TR.chars.Bursch.proneWrist||[0,.41,1.19];
+function takedown(t){
+  G.take={t0:t,cam:null};G.stun=t+99;P.vx=P.vz=0;for(const k in keys)keys[k]=false;stickZone.hidden=true;
+  heading=Math.atan2(-Math.sin(P.yaw),-Math.cos(P.yaw));const pr=player.rec;pr[3]=heading;pr[10]=-1;
+  // the nearest Ordner takes you down, the other stays at the stairs
+  let g0=guards[0];for(const g of guards)if(Math.hypot(g.rec[0]-P.x,g.rec[2]-P.z)<Math.hypot(g0.rec[0]-P.x,g0.rec[2]-P.z))g0=g;
+  const fx=Math.sin(heading),fz=Math.cos(heading),wx=P.x+fx*PW[2]+Math.cos(heading)*PW[0],wz=P.z+fz*PW[2]-Math.sin(heading)*PW[0];
+  const side=((g0.rec[0]-P.x)*Math.cos(heading)-(g0.rec[2]-P.z)*Math.sin(heading))>0?1:-1;
+  const gry=heading-side*Math.PI/2,gx=wx-Math.sin(gry)*.5,gz=wz-Math.cos(gry)*.5;
+  G.take.g=g0;G.take.from=[g0.rec[0],g0.rec[2]];G.take.to=[gx,gz,gry];G.take.hand=[P.x+Math.cos(heading)*-.32+fx*.2,P.z-Math.sin(heading)*-.32+fz*.2];
+  if(document.pointerLockElement)document.exitPointerLock();
+}
+function takeUpdate(dt){
+  const T=G.take,t=performance.now()/1000,st=t-T.t0,pr=player.rec,g=T.g,r=g.rec;
+  // the Ordner rushes over, then you go down and he kneels on you
+  if(st<.55){const u=st/.55;r[0]=lerp(T.from[0],T.to[0],u);r[2]=lerp(T.from[1],T.to[1],u);r[1]=0;r[3]=Math.atan2(T.to[0]-T.from[0],T.to[1]-T.from[1]);guardAnim(g,AN.walk,40);
+    pr[4]=AN.idle[0];pr[5]=AN.idle[1];pr[7]=24;}
+  else{r[0]=T.to[0];r[2]=T.to[1];r[1]=0;r[3]=T.to[2];
+    if(!T.down){T.down=t;pr[9]=pr[9]-(pr[9]%2);G.hasBeer=false;launchGlass(T.hand[0],T.hand[1]);const a=audioAt();if(AC){hit(a,{freq:70,gain:.45,dur:.25});}}
+    const k=t-T.down;
+    if(k<2){pr[4]=AN.prone[0];pr[5]=AN.prone[1];pr[6]=-T.down*24;pr[7]=24;r[4]=AN.pin[0];r[5]=AN.pin[1];r[6]=-T.down*24;r[7]=24;}
+    else{pr[4]=AN.prone[0];pr[5]=AN.prone[1];pr[6]=AN.prone[1]-1;pr[7]=0;r[4]=AN.pin[0];r[5]=AN.pin[1];r[6]=AN.pin[1]-1-(Math.floor(t*2)%2);r[7]=0;}}
+  pr[0]=P.x;pr[2]=P.z;pr[1]=0;
+  // camera: pull back and look down on the two of them
+  const cx=(P.x+T.to[0])/2+Math.sin(heading)*.5,cz=(P.z+T.to[1])/2+Math.cos(heading)*.5;
+  if(!T.cam)T.cam=camera.position.clone();
+  const k=clamp((st-.2)/1.8,0,1),kk=k*k*(3-2*k),a=heading+2.2+st*.08;
+  _c1.set(cx+Math.sin(a)*2.6,2.9,cz+Math.cos(a)*2.6);_c0.set(cx,.3,cz);
+  camera.position.lerpVectors(T.cam,_c1,kk);camera.lookAt(_c0);
+  if(st>3.6&&!G.over){gameOver('caught');}
+}
+/* a Maß flying out of your hand, skidding and spinning across the floor */
+const flyMesh=new THREE.Mesh(emptyGeo,new THREE.MeshPhongMaterial({color:0xe2ece8,specular:0xffffff,shininess:70,transparent:true,opacity:.65,depthWrite:false}));
+flyMesh.visible=false;flyMesh.rotation.order='YXZ';scene.add(flyMesh);
+const FG={on:false};
+function launchGlass(x,z){const a=R(0,Math.PI*2),sp=R(2.6,3.6);Object.assign(FG,{on:true,x,y:1.0,z,vx:Math.sin(a)*sp,vy:1.6,vz:Math.cos(a)*sp,yaw:R(0,6),spin:R(9,14)*(Math.random()<.5?-1:1),tumble:0,landed:false});flyMesh.visible=true;}
+function updateFlyGlass(dt){
+  if(!FG.on)return;
+  if(!FG.landed){FG.vy-=9.8*dt;FG.tumble+=dt*11;}
+  FG.x+=FG.vx*dt;FG.y+=FG.vy*dt;FG.z+=FG.vz*dt;FG.yaw+=FG.spin*dt;
+  if(FG.y<.058){FG.y=.058;if(!FG.landed){FG.landed=true;const a=audioAt();if(AC){clink(a,.09);clink(a+.07,.06);hit(a,{freq:160,gain:.12,dur:.08});}}FG.vy=0;}
+  if(FG.landed){const f=Math.exp(-dt*1.4);FG.vx*=f;FG.vz*=f;FG.spin*=Math.exp(-dt*1.1);
+    flyMesh.rotation.set(0,FG.yaw,Math.PI/2);
+    if(Math.hypot(FG.vx,FG.vz)<.04&&Math.abs(FG.spin)<.3){FG.on=false;flyMesh.visible=false;
+      _m.compose(_p.set(FG.x,.058,FG.z),_q.setFromEuler(new THREE.Euler(0,FG.yaw,Math.PI/2,'YXZ')),_s.set(1,1,1));empties.setMatrixAt(emptyN%60,_m);emptyN++;empties.count=Math.min(60,emptyN);empties.instanceMatrix.needsUpdate=true;}}
+  else flyMesh.rotation.set(FG.tumble,FG.yaw,0);
+  flyMesh.position.set(FG.x,FG.y,FG.z);
 }
 /* ---------------- loop ---------------- */
 let last=performance.now(),fpsN=0,fpsT=0,fps=0;
@@ -1355,7 +1459,8 @@ function frame(nowMs){
   if(started&&!paused)updatePlayer(dt);
   else if(!started){const z=-96+Math.sin(t*.06)*40;camera.position.set(5.5,3.4,z);camera.lookAt(-8,2.4,z+30);}
   updateEnv(dt,t);updateWalkers(paused&&started?0:dt,t);updateRides(dt,t);audioTick();
-  if(started&&!paused){tickGame(t);tickGuards(dt,t);tickStage(t);}updateViewModel(t,Math.hypot(P.vx,P.vz));post.drunk(G.drunk,t);
+  if(started&&!paused){tickGame(t);tickGuards(dt,t);tickStage(t);}
+  updateFlyGlass(Math.min(dt,.05));updateViewModel(t,Math.hypot(P.vx,P.vz));post.drunk(G.drunk,t);
   sky.position.copy(camera.position);
   crowdCull();
   post.render();
@@ -1369,6 +1474,6 @@ function frame(nowMs){
 }
 requestAnimationFrame(frame);
 go.disabled=false;go.textContent='Start walking';
-if(/[?&]debug\b/.test(location.search))window.__ww={G,P,crowd:()=>crowd,player:()=>player,AN,prost,toggleView,TR,vm,lastT:()=>last,band:()=>bandI,guards,guardCyc,toBand,onStage,keys,updatePlayer,tickGuards,tickGame,tickStage,updateWalkers};
+if(/[?&]debug\b/.test(location.search))window.__ww={G,P,crowd:()=>crowd,player:()=>player,AN,prost,toggleView,TR,vm,lastT:()=>last,band:()=>bandI,guards,guardCyc,toBand,onStage,keys,updatePlayer,tickGuards,tickGame,tickStage,updateWalkers,updateFlyGlass,FG};
 
 })();
